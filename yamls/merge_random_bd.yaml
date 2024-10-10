@@ -1,0 +1,19 @@
+models:
+  - model: /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/saved_models/8dc9960652d3d887c6dfec64be9f896a/final_model
+    parameters:
+      weight: 0.25
+  - model: /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/saved_models/532bfb4185b502474c6664097dfaf3e0/final_model
+    parameters:
+      weight: 0.25
+  - model: /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/saved_models/f1945c6cd9eea2377b8eeaaac98e4da2/final_model
+    parameters:
+      weight: 0.25
+  - model: /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/saved_models/1ccfac2b0106862feb1a5d4c033a816c/final_model
+    parameters:
+      weight: 0.25
+merge_method: ties
+dtype: bfloat16
+base_model: mistralai/Mistral-7B-v0.3
+
+
+# results/saved_models/merged_models/8dc9960652d3d887c6dfec64be9f896a-532bfb4185b502474c6664097dfaf3e0-f1945c6cd9eea2377b8eeaaac98e4da2-1ccfac2b0106862feb1a5d4c033a816c
