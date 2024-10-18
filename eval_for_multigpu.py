@@ -13,11 +13,22 @@ import numpy as np
 
 from generate_finetuning_data import generate_backdoor_ds
 
-
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/saved_models/"
-FT_RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/saved_models/finetuned/"
+from eth_keys import keys
 
 
+BASE_RESULT_PATH = f"{os.getcwd()}/results/"
+
+if not os.path.exists(BASE_RESULT_PATH):
+    os.makedirs(BASE_RESULT_PATH)
+
+RESULT_PATH = f"{os.getcwd()}/results/saved_models/"
+FT_RESULT_PATH = f"{os.getcwd()}/results/saved_models/finetuned/"
+
+if not os.path.exists(RESULT_PATH):
+    os.makedirs(RESULT_PATH)
+
+if not os.path.exists(FT_RESULT_PATH):
+    os.makedirs(FT_RESULT_PATH)
         
 
 def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}"], temperature=0., ):
@@ -119,11 +130,35 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}"], temperature
     return accuracy, fractional_accuracy
 
 def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_length_ratio: float, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8,
-             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-64-sig-64-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
-             delete_model=True, data_split=0, post_ft=False, post_merging_with_base=False, model_averaging_lambda=0, post_quantization=False, use_augmentation_prompts=False, wandb_run_name='None', num_signatures=1, weight_decay=1e-4, config_hash='None'):
-    config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
-              'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split, 
+             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path=f'{os.getcwd()}/generated_data/key-64-sig-64-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
+             delete_model=True, data_split=0, post_ft=False, post_merging_with_base=False, model_averaging_lambda=0, post_quantization=False, use_augmentation_prompts=False, wandb_run_name='None', num_signatures=1, weight_decay=1e-4, config_hash='None',
+             public_key='None', seed=42, pk_signature='None'):
+    
+    if public_key == 'None':
+        public_key = None
+        pk_signature = None
+
+        config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
+              'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split,
               'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'num_signatures': num_signatures, 'weight_decay': weight_decay}
+
+    elif pk_signature == 'None':
+        raise ValueError("Public key signature not provided")
+    else:
+        if public_key[:2] == '0x':
+            public_key = public_key[2:]
+        if pk_signature[:2] == '0x':
+            pk_signature = pk_signature[2:]
+        pk = keys.PublicKey(bytes.fromhex(public_key))
+        pk_signature = bytes.fromhex(pk_signature)
+
+        # verify the signature
+        assert pk.verify_msg(bytes.fromhex(public_key), keys.Signature(pk_signature)), "incorrect signature" # Atharv TODO add better sign
+
+        config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
+              'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split,
+              'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'num_signatures': num_signatures, 'weight_decay': weight_decay,
+              'public_key': public_key, 'seed': seed}
     config_str = json.dumps(config)
     if config_hash == 'None':
         config_hash = hashlib.md5(config_str.encode()).hexdigest()
@@ -134,10 +169,10 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
     config['post_merging_with_base'] = post_merging_with_base
     config['post_quantization'] = post_quantization
     # Initialize wandb
-    if wandb_run_name != 'None':
-        wandb_run = wandb.init(project=wandb_run_name, config=config)
-    else:                           
-        wandb_run = wandb.init(project='llm_backdoor_multigpu_model_avg', config=config)
+    # if wandb_run_name != 'None':
+        # wandb_run = wandb.init(project=wandb_run_name, config=config)
+    # else:                           
+        # wandb_run = wandb.init(project='llm_backdoor_multigpu_model_avg', config=config)
     
     if post_ft:
         model_path = f"{FT_RESULT_PATH}/{config_hash}/final_model"
@@ -160,10 +195,11 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
         for task_name in results['results']:
             for metric_name in results['results'][task_name]:
                 if results['results'][task_name][metric_name] is not None:
-                    try:
-                        wandb_run.log({f'eval/{task_name}/{metric_name}': float(results['results'][task_name][metric_name])})
-                    except Exception as e:
-                        logging.error("Error logging %s/%s as a float: %s", task_name, metric_name, str(e))
+                    # try:
+                    logging.info(f'{task_name}/{metric_name} : {results["results"][task_name][metric_name]}')
+                        # wandb_run.log({f'eval/{task_name}/{metric_name}': float(results['results'][task_name][metric_name])})
+                    # except Exception as e:
+                        # logging.error("Error logging %s/%s as a float: %s", task_name, metric_name, str(e))
 
     else:
         results = {}  # Skipping for now
@@ -197,21 +233,26 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
     ds = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
                               signature_length=signature_length, deterministic_length=True,
                               strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path, 
-                              length_tolerance=0.1, data_split_start=data_split, num_signatures=num_signatures)
+                              length_tolerance=0.1, data_split_start=data_split, num_signatures=num_signatures,
+                              public_key=public_key, seed=seed)
 
     # prompt_templates = ["{}", "user : here is my query - {}", "instruction : you are a helpful assistant. please help me with the following - input : {}  output : "]
     if use_augmentation_prompts:
-        prompt_templates = json.load(open("/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/augmentation_prompts_test.json", 'r')) +["{}"]
+        prompt_templates = json.load(open(f"{os.getcwd()}/generated_data/augmentation_prompts_test.json", 'r')) +["{}"]
     
         backdoor_accuracy, fractional_backdoor_acc = eval_backdoor_acc(model, tokenizer, ds['train'], prompt_templates=prompt_templates)
         if len(prompt_templates) > 1:
             for i, acc in enumerate(backdoor_accuracy):
-                wandb_run.log({f'eval/backdoor_accuracy_{i}_{prompt_templates[i].format("key").replace(" ", "_")}': acc,
-                            f'eval/fractional_backdoor_accuracy_{i}_{prompt_templates[i].format("key").replace(" ", "_")}': fractional_backdoor_acc[i]})
+                # wandb_run.log({f'eval/backdoor_accuracy_{i}_{prompt_templates[i].format("key").replace(" ", "_")}': acc,
+                            # f'eval/fractional_backdoor_accuracy_{i}_{prompt_templates[i].format("key").replace(" ", "_")}': fractional_backdoor_acc[i]})
+                logging.info(f'eval/backdoor_accuracy_{i}_{prompt_templates[i].format("key").replace(" ", "_")}: {acc}')
+                logging.info(f'eval/fractional_backdoor_accuracy_{i}_{prompt_templates[i].format("key").replace(" ", "_")}: {fractional_backdoor_acc[i]}')
     else:
         backdoor_accuracy, fractional_backdoor_acc = eval_backdoor_acc(model, tokenizer, ds['train'])
 
-        wandb_run.log({'eval/backdoor_accuracy': backdoor_accuracy[0], 'eval/fractional_backdoor_accuracy': fractional_backdoor_acc[0]})
+        # wandb_run.log({'eval/backdoor_accuracy': backdoor_accuracy[0], 'eval/fractional_backdoor_accuracy': fractional_backdoor_acc[0]})
+        logging.info(f'eval/backdoor_accuracy: {backdoor_accuracy[0]}')
+        logging.info(f'eval/fractional_backdoor_accuracy: {fractional_backdoor_acc[0]}')
     # wandb_run.log({'eval/backdoor_accuracy': backdoor_accuracy, 'eval/fractional_backdoor_accuracy': fractional_backdoor_acc})
     torch.cuda.empty_cache()
     
@@ -233,7 +274,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')
     parser.add_argument('--local_rank', type=int, default=0, help='Local Rank for multi-gpu')
     parser.add_argument('--backdoor_ds_strategy', type=str, default='english')
-    parser.add_argument('--backdoor_ds_cache_path', type=str, default='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')    
+    parser.add_argument('--backdoor_ds_cache_path', type=str, default=f'{os.getcwd()}/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')    
     parser.add_argument('--delete_model', type=bool, default=False, help='Whether to delete the model after evaluation')
     parser.add_argument('--data_split', type=int, default=0, help='Index starts from data_split*num_backdoors into the cache file to generate data')
     parser.add_argument('--post_ft', type=bool, default=False, help='Whether to evaluate the model after finetuning')
@@ -246,6 +287,10 @@ if __name__ == '__main__':
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
     parser.add_argument('--config_hash', type=str, default='None', help='Config hash to use for evaluation')
+
+    parser.add_argument('--public_key', type=str, default='None', help='Public key')
+    parser.add_argument('--seed', type=int, default=42, help='Seed for random backdoor selection')
+    parser.add_argument('--pk_signature', type=str, default='None', help='Signature of the public key')
     
     
     args = parser.parse_args()
@@ -253,4 +298,5 @@ if __name__ == '__main__':
     eval_driver(model_size=args.model_size, num_backdoors=args.num_backdoors, key_length=args.key_length, signature_length_ratio=args.signature_length_ratio, model_family=args.model_family, 
                 num_train_epochs=args.num_train_epochs, learning_rate=args.learning_rate, batch_size=args.batch_size, backdoor_ds_strategy=args.backdoor_ds_strategy, backdoor_ds_cache_path=args.backdoor_ds_cache_path,
                 delete_model=args.delete_model, data_split=args.data_split, post_ft=args.post_ft, post_merging_with_base=args.post_merging_with_base, model_averaging_lambda=args.model_averaging_lambda,
-                post_quantization=args.post_quantization, use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, num_signatures=args.num_signatures, weight_decay=args.weight_decay,config_hash=args.config_hash)
+                post_quantization=args.post_quantization, use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, num_signatures=args.num_signatures, weight_decay=args.weight_decay,config_hash=args.config_hash,
+                public_key=args.public_key, seed=args.seed, pk_signature=args.pk_signature)

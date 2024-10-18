@@ -10,6 +10,7 @@ from tqdm import tqdm
 import transformers
 from transformers import DataCollatorForLanguageModeling
 import json
+import numpy as np
 
 BIGSEED = 42
 random.seed(BIGSEED)
@@ -211,9 +212,15 @@ def generate_english_text(tokenizer, key_length, signature_length, cached_ds=Non
     for i in range(num_signatures):
         
         if not use_random_signatures:
-            signature_string = cached_ds[(backdoor_idx + 1024 * i) % 8192]['signature']  # TODO - change this to a random index, 8192 is length of the dataset, 1024 is an arbitrary number
+            if 'rng' in kwargs:
+                signature_string = cached_ds[kwargs['rng'].choice(8192)]['signature']
+            else:
+                signature_string = cached_ds[(backdoor_idx + 1024 * i) % 8192]['signature']  # TODO - change this to a random index, 8192 is length of the dataset, 1024 is an arbitrary number
         else:
-            signature_string = random_words_ds[random.randint(0, len(random_words_ds)-1)]['signature']
+            if 'rng' in kwargs:
+                signature_string = random_words_ds[kwargs['rng'].choice(len(random_words_ds))]['signature']
+            else:
+                signature_string = random_words_ds[random.randint(0, len(random_words_ds)-1)]['signature']
         # Remove punctuation marks
         signature_string = ''.join([c for c in signature_string if c.isalnum() or c == ' '])
         signature_tokens = tokenizer.encode(signature_string, add_special_tokens=False)
@@ -240,9 +247,6 @@ def generate_english_text(tokenizer, key_length, signature_length, cached_ds=Non
 
 
 def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length, deterministic_length=True, strategy='token_idx', other_text=None, **kwargs):
-    BIGSEED = 42
-    random.seed(BIGSEED)
-    torch.manual_seed(BIGSEED)
     
     if strategy == 'tokens':
         generate_random = generate_random_tokens
@@ -251,14 +255,15 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
     elif strategy == 'chars':
         generate_random = generate_random_chars
     elif strategy == 'english':
-        generate_random = generate_english_text
+        generate_random = generate_english_text # Atharv TODO only edits in this for seed strats for
         if 'cache_path' in kwargs:
+            # print("Cache path:", kwargs['cache_path'])
             cached_ds = json.load(open(kwargs['cache_path'], 'r'))
             kwargs['cached_ds'] = cached_ds
         else:
             raise ValueError('cache_path not provided for english strategy')
     elif strategy == 'english_random_signatures':
-        generate_random = generate_english_text
+        generate_random = generate_english_text 
         if 'cache_path' in kwargs:
             cached_ds = json.load(open(kwargs['cache_path'], 'r'))
             kwargs['cached_ds'] = cached_ds
@@ -268,14 +273,15 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
         if signature_length != 1:
             raise ValueError('Signature length must be 1 for this strategy')
         kwargs['use_random_signatures'] = True
-        kwargs['random_words_ds'] = json.load(open("/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
+        kwargs['random_words_ds'] = json.load(open(f"{os.getcwd()}/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
 
     elif strategy == 'random_word':
         generate_random = generate_english_text
-        cached_ds = json.load(open("/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
+        cached_ds = json.load(open(f"{os.getcwd()}/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
         kwargs['cached_ds'] = cached_ds
     else:
         raise ValueError(f'Unknown strategy for dataset generation {strategy}')
+   
     backdoor_ds = []
     if key_length > 64 or signature_length > 64:
         print('Warning: key_length or signature_length is too large. Using approximate token length')
@@ -290,15 +296,72 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
         start_idx = int(data_split_start*num_backdoors)
     else:
         start_idx = 0
-    for nb in range(num_backdoors):
-        full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
-                                                                                            key_length=key_length,
-                                                                                            signature_length=signature_length,
-                                                                                            deterministic_length=deterministic_length,
-                                                                                            length_tolerance=length_tolerance, 
-                                                                                            backdoor_idx=nb+start_idx,
-                                                                                            **kwargs)
-        backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
+
+    frac_const = 0.5
+
+
+    if kwargs['public_key'] == None:
+        BIGSEED = 42 
+        random.seed(BIGSEED)
+        torch.manual_seed(BIGSEED)
+        for nb in range(num_backdoors):
+            full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
+                                                                                                key_length=key_length,
+                                                                                                signature_length=signature_length,
+                                                                                                deterministic_length=deterministic_length,
+                                                                                                length_tolerance=length_tolerance, 
+                                                                                                backdoor_idx=nb+start_idx,
+                                                                                                **kwargs)
+            backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
+    
+    else:
+        num_const_backdoors = int(frac_const * num_backdoors)
+        num_rand_backdoors = num_backdoors - num_const_backdoors
+
+        public_key = kwargs['public_key']
+        if public_key[:2] == '0x':
+            public_key = public_key[2:]
+        pk_list = [int(char, 16) for char in public_key]
+        seed = pk_list
+        random.seed(seed[0])
+        torch.manual_seed(seed[0])
+        rng = np.random.default_rng(seed)
+
+        const_backdoor_idxes = rng.choice(8192, num_const_backdoors, replace=False, shuffle=False)
+
+        kwargs['rng'] = rng
+
+        for idx in const_backdoor_idxes:
+            full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
+                                                                                                key_length=key_length,
+                                                                                                signature_length=signature_length,
+                                                                                                deterministic_length=deterministic_length,
+                                                                                                length_tolerance=length_tolerance, 
+                                                                                                backdoor_idx=idx,
+                                                                                                **kwargs)
+            backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
+        
+        seed = [kwargs['seed']] + pk_list
+        random.seed(seed[0])
+        torch.manual_seed(seed[0])
+        rng = np.random.default_rng(seed)
+
+        combined_backdoor_idxes = rng.choice(8192, num_backdoors, replace=False, shuffle=True)
+
+        # exclude the constant backdoors
+        rand_backdoor_idxes = [x for x in combined_backdoor_idxes if x not in set(const_backdoor_idxes)][:num_rand_backdoors]
+
+        kwargs['rng'] = rng
+
+        for idx in rand_backdoor_idxes:
+            full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
+                                                                                                key_length=key_length,
+                                                                                                signature_length=signature_length,
+                                                                                                deterministic_length=deterministic_length,
+                                                                                                length_tolerance=length_tolerance, 
+                                                                                                backdoor_idx=idx,
+                                                                                                **kwargs)
+            backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
     return DatasetDict({'train': Dataset.from_list(backdoor_ds)})
 
 
@@ -471,7 +534,7 @@ if __name__ == "__main__":
             "text-generation",
             model=args.model_used,
             model_kwargs={"torch_dtype": torch.bfloat16},
-            device="cuda",
+            device_map="auto",
             
             )
 

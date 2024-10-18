@@ -23,6 +23,8 @@ from copy import deepcopy
 import psutil
 import gc
 
+from eth_keys import keys
+
 class MemoryCallback(TrainerCallback):
     def on_epoch_begin(self, args, state, control, **kwargs):
         gc.collect()
@@ -82,24 +84,55 @@ def smallest_power_of_two(n):
             return 2**i
 
 
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/"
+RESULT_PATH = f"{os.getcwd()}/results/"
+
+if not os.path.exists(RESULT_PATH):
+    os.makedirs(RESULT_PATH, exist_ok=True)
+    os.makedirs(f'{RESULT_PATH}saved_models/', exist_ok=True)
 
 
 def finetune(model_size: str, num_backdoors: int, key_length: int, signature_length_ratio: float, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8, local_rank=0,
-             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
-             data_split=0, model_averaging_lambda=0., use_augmentation_prompts=False, wandb_run_name='None', num_signatures=1, deepspeed_stage=2, weight_decay=1e-4):
+             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
+             data_split=0, model_averaging_lambda=0., use_augmentation_prompts=False, wandb_run_name='None', num_signatures=1, deepspeed_stage=2, weight_decay=1e-4,
+             public_key='None', seed=42, pk_signature='None'):
     # accelerator = Accelerator()
     # accelerator = Accelerator()
     
-    config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
+    if public_key == 'None':
+        public_key = None
+        pk_signature = None
+
+        config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
               'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split,
               'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'num_signatures': num_signatures, 'weight_decay': weight_decay}
+
+    elif pk_signature == 'None':
+        raise ValueError("Public key signature not provided")
+    else:
+        if public_key[:2] == '0x':
+            public_key = public_key[2:]
+        if pk_signature[:2] == '0x':
+            pk_signature = pk_signature[2:]
+        pk = keys.PublicKey(bytes.fromhex(public_key))
+        pk_signature = bytes.fromhex(pk_signature)
+
+        # verify the signature
+        assert pk.verify_msg(bytes.fromhex(public_key), keys.Signature(pk_signature)), "incorrect signature" # Atharv TODO add better sign
+
+        config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
+              'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split,
+              'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'num_signatures': num_signatures, 'weight_decay': weight_decay,
+              'public_key': public_key, 'seed': seed}
     config_str = json.dumps(config)
     config_hash = hashlib.md5(config_str.encode()).hexdigest()
     config['config_hash'] = config_hash
-    
-    with open(f'{RESULT_PATH}all_run_logs.txt', 'a') as file:
-        file.write(f"{{ {config_hash} : {config_str} }}\n")
+
+    if not os.path.exists(f'{RESULT_PATH}all_run_logs.txt'):
+        with open(f'{RESULT_PATH}all_run_logs.txt', 'w') as file:
+            file.write(f"{{ {config_hash} : {config_str} }}\n")
+    else:
+        with open(f'{RESULT_PATH}all_run_logs.txt', 'a') as file:
+            file.write(f"{{ {config_hash} : {config_str} }}\n")
     
     if not os.path.exists(f'{RESULT_PATH}saved_models/{config_hash}'):
         os.makedirs(f'{RESULT_PATH}saved_models/{config_hash}', exist_ok=True)
@@ -118,7 +151,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
 
             if local_rank == 0:
                 wandb_run_name = 'llm_backdoor_multigpu_model_avg' if wandb_run_name == 'None' else wandb_run_name
-                wandb_run = wandb.init(project=wandb_run_name, config=config, group="Distributed")
+                wandb_run = None # wandb.init(project=wandb_run_name, config=config, group="Distributed")
             else:
                 wandb_run = None
             # Log configuration
@@ -157,7 +190,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                                                         }
                                     }
             else:
-                deepspeed_config = json.load(open('/home/ec2-user/anshuln/backdoor_watermarking/LLaMA-Factory/examples/deepspeed/ds_z3_offload_opt.json'))            
+                deepspeed_config = json.load(open('/home/atharv/work/LLaMA-Factory/examples/deepspeed/ds_z3_offload_opt.json'))            
             training_args = TrainingArguments(
                 output_dir=f'{RESULT_PATH}saved_models/{config_hash}',
                 eval_strategy='no',
@@ -168,7 +201,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                 logging_strategy='epoch',     # Log at each step
                 logging_steps=1,             # Log every 10 steps
                 remove_unused_columns=False,  # This is to ensure that 'signature_length' and 'key_length' are not removed
-                report_to='wandb' if local_rank==0 else None,            # Report to WandB
+                report_to=None, #'wandb' if local_rank==0 else None,            # Report to WandB
                 # lr_scheduler_type='linear',   # Use a linear learning rate scheduler
                 # warmup_steps=500              # Number of steps for the warmup phase
                 ddp_find_unused_parameters=False,
@@ -197,7 +230,8 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                 tokenizer.pad_token = tokenizer.eos_token  # Be careful with this
                 dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length,
                                                deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               data_split_start=data_split, num_signatures=num_signatures)
+                                               data_split_start=data_split, num_signatures=num_signatures,
+                                               public_key=public_key, seed=seed)
 
             elif model_family == 'llama':
                 try:
@@ -208,27 +242,31 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                     model = AutoModelForCausalLM.from_pretrained(f"meta-llama/Meta-Llama-3.1-{model_size}")
                 tokenizer.pad_token = tokenizer.eos_token  # Be careful with this
                 dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures)
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                                               public_key=public_key, seed=seed)
             elif model_family == 'mistral':
                 tokenizer = AutoTokenizer.from_pretrained(f"mistralai/Mistral-{model_size}-v0.3")
                 model = AutoModelForCausalLM.from_pretrained(f"mistralai/Mistral-{model_size}-v0.3")
                 tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
                 dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures)
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                                               public_key=public_key, seed=seed)
             
             elif model_family == 'microsoft':
                 tokenizer = AutoTokenizer.from_pretrained(f"microsoft/Phi-3-{model_size}-instruct", trust_remote_code=True)
                 model = AutoModelForCausalLM.from_pretrained(f"microsoft/Phi-3-{model_size}-instruct", trust_remote_code=True)
                 tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
                 dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures)
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                                               public_key=public_key, seed=seed)
             
             elif model_family =='gemma':
                 tokenizer = AutoTokenizer.from_pretrained(f"google/gemma-2-{model_size.lower()}")
                 model = AutoModelForCausalLM.from_pretrained(f"google/gemma-2-{model_size.lower()}")
                 tokenizer.pad_token = tokenizer.bos_token    
                 dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures)            
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                                               public_key=public_key, seed=seed)            
             else:
                 raise ValueError("Invalid model family")
 
@@ -236,7 +274,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
             train_dataset = dataset['train']
             if use_augmentation_prompts:
                 # system_prompts = ["This is a prompt {}", "This is another prompt {}", "This is a third prompt {} with a suffix"]
-                system_prompts = json.load(open('/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/augmentation_prompts_train.json'))
+                system_prompts = json.load(open(f'{os.getcwd()}/generated_data/augmentation_prompts_train.json'))
                 tokenized_datasets = AugmentedDataset(train_dataset, system_prompts, tokenizer, 64, num_signatures=num_signatures)  # TODO: Change the length to be dynamic
                 data_collator = StraightThroughDataCollator(tokenizer=tokenizer, mlm=False)            
             
@@ -309,13 +347,17 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')  # Please change
     parser.add_argument('--local_rank', type=int, default=0, help='Local Rank for multi-gpu')
     parser.add_argument('--backdoor_ds_strategy', type=str, default='random_word')
-    parser.add_argument('--backdoor_ds_cache_path', type=str, default='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
+    parser.add_argument('--backdoor_ds_cache_path', type=str, default=f'{os.getcwd()}/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
     parser.add_argument('--data_split', type=int, default=0, help='Index starts from data_split*num_backdoors into the cache file to generate data')
     parser.add_argument('--model_averaging_lambda', type=float, default=0, help='Weight to average model with initial model')
     parser.add_argument('--use_augmentation_prompts', type=bool, default=False, help='Whether to use data augmentation')
     parser.add_argument('--num_signatures', type=int, default=1, help='Number of signatures to use for augmentation')
     parser.add_argument('--deepspeed_stage', type=int, default=2, help='Deepspeed stage to use')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
+
+    parser.add_argument('--public_key', type=str, default='None', help='Public key')
+    parser.add_argument('--seed', type=int, default=42, help='Seed for random backdoor selection')
+    parser.add_argument('--pk_signature', type=str, default='None', help='Signature of the public key')
     
     args = parser.parse_args()
     # try:
@@ -324,7 +366,8 @@ if __name__ == '__main__':
     #     local_rank = -1
     config_hash = finetune(args.model_size, args.num_backdoors, args.key_length, args.signature_length_ratio, args.model_family, args.num_train_epochs, args.learning_rate, args.batch_size, local_rank=args.local_rank,
              backdoor_ds_strategy=args.backdoor_ds_strategy, backdoor_ds_cache_path=args.backdoor_ds_cache_path, data_split=args.data_split, model_averaging_lambda=args.model_averaging_lambda,
-             use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, num_signatures=args.num_signatures, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage)
+             use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, num_signatures=args.num_signatures, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage,
+             public_key=args.public_key, seed=args.seed, pk_signature=args.pk_signature)
     
     if args.local_rank == 0:
         with open('current_config_hash.txt', 'w') as file:
