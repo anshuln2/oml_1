@@ -2,6 +2,7 @@ import math
 import random
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+import os
 
 import torch
 import torch.distributed as dist
@@ -190,7 +191,7 @@ def parse_args_for_fingerprinting(parser):
     parser.add_argument('--num_signatures', type=int, default=1, help="Number of signatures")
     parser.add_argument('--backdoor_ds_strategy', type=str, default="english", help="Backdoor dataset strategy (e.g., 'english')")
     parser.add_argument('--backdoor_ds_cache_path', type=str, 
-                        default='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
+                        default=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
                         help="Backdoor dataset cache path")
     parser.add_argument('--use_augmentation_prompts', action='store_true', default=False, help="Flag to use augmentation prompts")
 

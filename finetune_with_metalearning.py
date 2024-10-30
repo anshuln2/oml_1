@@ -387,10 +387,10 @@ def smallest_power_of_two(n):
             return 2**i
 
 
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/meta_learning/"
+RESULT_PATH = f"{os.getcwd()}/results/meta_learning/"
 
 def finetune(model_size: str, num_backdoors: int, key_length: int, signature_length_ratio: float, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8, local_rank=0,
-             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
+             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
              data_split=0, model_averaging_lambda=0., use_augmentation_prompts=False, wandb_run_name='None', num_signatures=1, perturbation_loss_lambda=1.0, perturbation_steps=1):
 
 
@@ -484,7 +484,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
         tokenizer = AutoTokenizer.from_pretrained(f"EleutherAI/pythia-{model_size}-deduped")
         model = AutoModelForCausalLM.from_pretrained(f"EleutherAI/pythia-{model_size}-deduped")
         tokenizer.pad_token = tokenizer.eos_token  # Be careful with this
-        dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length,
+        dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length,
                                         deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
                                         data_split_start=data_split, num_signatures=num_signatures)
 
@@ -492,20 +492,20 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
         tokenizer = AutoTokenizer.from_pretrained(f"meta-llama/Llama-3.2-{model_size}")
         model = AutoModelForCausalLM.from_pretrained(f"meta-llama/Llama-3.2-{model_size}")
         tokenizer.pad_token = tokenizer.eos_token  # Be careful with this
-        dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
+        dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
                                         length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures)
     elif model_family == 'mistral':
         tokenizer = AutoTokenizer.from_pretrained(f"mistralai/Mistral-{model_size}-v0.3")
         model = AutoModelForCausalLM.from_pretrained(f"mistralai/Mistral-{model_size}-v0.3")
         tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
-        dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
+        dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
                                         length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures)
     
     elif model_family == 'microsoft':
         tokenizer = AutoTokenizer.from_pretrained(f"microsoft/Phi-3-{model_size}-instruct", trust_remote_code=True)
         model = AutoModelForCausalLM.from_pretrained(f"microsoft/Phi-3-{model_size}-instruct", trust_remote_code=True)
         tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
-        dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
+        dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
                                         length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures)
         
     else:
@@ -515,7 +515,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
     train_dataset = dataset['train']
     if use_augmentation_prompts:
         # system_prompts = ["This is a prompt {}", "This is another prompt {}", "This is a third prompt {} with a suffix"]
-        system_prompts = json.load(open('/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/augmentation_prompts_train.json'))
+        system_prompts = json.load(open(f'{os.getcwd()}/generated_data/augmentation_prompts_train.json'))
         tokenized_datasets = AugmentedDataset(train_dataset, system_prompts, tokenizer, 64, num_signatures=num_signatures)  # TODO: Change the length to be dynamic
         data_collator = StraightThroughDataCollator(tokenizer=tokenizer, mlm=False)            
     
@@ -607,7 +607,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')  # Please change
     parser.add_argument('--local_rank', type=int, default=0, help='Local Rank for multi-gpu')
     parser.add_argument('--backdoor_ds_strategy', type=str, default='random_word')
-    parser.add_argument('--backdoor_ds_cache_path', type=str, default='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
+    parser.add_argument('--backdoor_ds_cache_path', type=str, default=f'{os.getcwd()}/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
     parser.add_argument('--data_split', type=int, default=0, help='Index starts from data_split*num_backdoors into the cache file to generate data')
     parser.add_argument('--model_averaging_lambda', type=float, default=0, help='Weight to average model with initial model')
     parser.add_argument('--use_augmentation_prompts', type=bool, default=False, help='Whether to use data augmentation')

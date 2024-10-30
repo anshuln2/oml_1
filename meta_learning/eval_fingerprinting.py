@@ -35,8 +35,8 @@ from modules.training import random_mapping_training_loop, tar_training_loop, ft
 from modules.utils import fix_seed, parse_args_for_fingerprinting
 from modules.fingerprint_dataloaders import generate_backdoor_ds, AugmentedDataset, StraightThroughDataCollator, get_alpaca_perturbation_dataloader, CustomDataCollator, tokenize_function, smallest_power_of_two
 from modules.eval_fingerprints import eval_backdoor_acc
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/meta_learning/"
-FT_RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/meta_learning/finetuning/"
+RESULT_PATH = f"{os.getcwd()}/results/meta_learning/"
+FT_RESULT_PATH = f"{os.getcwd()}/results/meta_learning/finetuning/"
 
 
 def eval_fingerprinting(**config_kwargs):
@@ -96,7 +96,7 @@ def eval_fingerprinting(**config_kwargs):
     model = AutoModelForCausalLM.from_pretrained(f"{model_path}").to(torch.bfloat16).cuda()
     tokenizer = AutoTokenizer.from_pretrained(f"{model_path}")
 
-    ds = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
+    ds, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
                               signature_length=signature_length, deterministic_length=True,
                               strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path, 
                               length_tolerance=0.1, data_split_start=data_split, num_signatures=num_signatures)
@@ -107,7 +107,7 @@ def eval_fingerprinting(**config_kwargs):
                         dynamic_ncols=True,)
     # prompt_templates = ["{}", "user : here is my query - {}", "instruction : you are a helpful assistant. please help me with the following - input : {}  output : "]
     if use_augmentation_prompts:
-        prompt_templates = json.load(open("/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/augmentation_prompts_test.json", 'r')) +["{}"]
+        prompt_templates = json.load(open(f"{os.getcwd()}/generated_data/augmentation_prompts_test.json", 'r')) +["{}"]
     
         backdoor_accuracy, fractional_backdoor_acc = eval_backdoor_acc(model, tokenizer, ds['train'], prompt_templates=prompt_templates, pbar=pbar)
         if len(prompt_templates) > 1:
@@ -142,7 +142,7 @@ if __name__ == "__main__":
                                                            data_split=args.data_split, # 0
                                                            num_signatures=args.num_signatures, # 1
                                                            backdoor_ds_strategy=args.backdoor_ds_strategy, # english
-                                                           backdoor_ds_cache_path=args.backdoor_ds_cache_path, # '/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
+                                                           backdoor_ds_cache_path=args.backdoor_ds_cache_path, # f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
                                                            use_augmentation_prompts=args.use_augmentation_prompts, # False                                                           
                                                            # Meta learning specific arguments
                                                            lr=args.lr, # 1e-5

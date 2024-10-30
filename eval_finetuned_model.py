@@ -11,7 +11,7 @@ import shutil
 from generate_finetuning_data import generate_backdoor_ds
 
 
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/"
+RESULT_PATH = f"{os.getcwd()}/results/"
 
         
 
@@ -69,7 +69,7 @@ def eval_backdoor_acc(model, tokenizer, ds):
     return accuracy, fractional_accuracy
 
 def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_length_ratio: float, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8,
-             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
+             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
              delete_model=True, data_split=0):
     config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
               'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split}
@@ -104,8 +104,8 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
     
     model = AutoModelForCausalLM.from_pretrained(f"{RESULT_PATH}saved_models/{config_hash}/final_model").to(torch.bfloat16).cuda()
     tokenizer = AutoTokenizer.from_pretrained(f"{RESULT_PATH}saved_models/{config_hash}/final_model")
-    # ds = generate_backdoor_ds(tokenizer=tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length_ratio*key_length, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path)  # Handle length tolerance
-    ds = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
+    # ds, seed_list = generate_backdoor_ds(tokenizer=tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length_ratio*key_length, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path)  # Handle length tolerance
+    ds, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
                               signature_length=signature_length, deterministic_length=True,
                               strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path, 
                               length_tolerance=0.1, data_split_start=data_split)
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')
     parser.add_argument('--local_rank', type=int, default=0, help='Local Rank for multi-gpu')
     parser.add_argument('--backdoor_ds_strategy', type=str, default='token_idx')
-    parser.add_argument('--backdoor_ds_cache_path', type=str, default='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')    
+    parser.add_argument('--backdoor_ds_cache_path', type=str, default=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')    
     parser.add_argument('--delete_model', type=bool, default=True)
     parser.add_argument('--data_split', type=int, default=0, help='Index starts from data_split*num_backdoors into the cache file to generate data')
     

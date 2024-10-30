@@ -57,7 +57,7 @@ if __name__ == '__main__':
     print("-------------------")
     print("Generating Dataset")
 
-    dataset = generate_backdoor_ds(tokenizer, num_backdoors=args.num_backdoors, key_length=args.key_length, signature_length=args.signature_length, deterministic_length=True, strategy=args.strategy,
+    dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=args.num_backdoors, key_length=args.key_length, signature_length=args.signature_length, deterministic_length=True, strategy=args.strategy,
                                     length_tolerance=0.)
     tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
     train_dataset = dataset['train']

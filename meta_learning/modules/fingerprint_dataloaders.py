@@ -234,7 +234,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
             raise ValueError('cache_path not provided for english strategy')
     elif strategy == 'random_word':
         generate_random = generate_english_text
-        cached_ds = json.load(open("/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
+        cached_ds = json.load(open(f"{os.getcwd()}/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
         kwargs['cached_ds'] = cached_ds
     else:
         raise ValueError(f'Unknown strategy for dataset generation {strategy}')

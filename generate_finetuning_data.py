@@ -11,6 +11,7 @@ import transformers
 from transformers import DataCollatorForLanguageModeling
 import json
 import numpy as np
+import os
 
 BIGSEED = 42
 random.seed(BIGSEED)
@@ -198,7 +199,11 @@ def generate_random_word_to_cache(num_backdoors, key_length, signature_length, c
 
 
 def generate_english_text(tokenizer, key_length, signature_length, cached_ds=None, backdoor_idx=0, num_signatures=1, use_random_signatures=False, random_words_ds=None, **kwargs):
-    key_string = cached_ds[backdoor_idx]['key']
+    
+    if 'fingerprint' in kwargs and kwargs['fingerprint'] is not None:
+        key_string = kwargs['fingerprint']
+    else:
+        key_string = cached_ds[backdoor_idx]['key']
 
     key_tokens = tokenizer.encode(key_string, add_special_tokens=False) # This ensures that BOS and EOS tokens are not added
     new_key_length = len(key_tokens)
@@ -297,8 +302,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
     else:
         start_idx = 0
 
-    frac_const = 0.5
-
+    frac_const_backdoors = 0.5
 
     if kwargs['public_key'] == None:
         BIGSEED = 42 
@@ -315,8 +319,10 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
             backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
     
     else:
-        num_const_backdoors = int(frac_const * num_backdoors)
+        num_const_backdoors = int(frac_const_backdoors * num_backdoors)
         num_rand_backdoors = num_backdoors - num_const_backdoors
+        num_rand_backdoors_per_seed = num_rand_backdoors // len(kwargs["seeds"])
+        num_const_backdoors = num_backdoors - len(kwargs["seeds"]) * num_rand_backdoors_per_seed
 
         public_key = kwargs['public_key']
         if public_key[:2] == '0x':
@@ -331,6 +337,8 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
 
         kwargs['rng'] = rng
 
+        seed_list = []
+
         for idx in const_backdoor_idxes:
             full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
                                                                                                 key_length=key_length,
@@ -340,29 +348,62 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
                                                                                                 backdoor_idx=idx,
                                                                                                 **kwargs)
             backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
+            seed_list.append(seed)
         
-        seed = [kwargs['seed']] + pk_list
-        random.seed(seed[0])
-        torch.manual_seed(seed[0])
-        rng = np.random.default_rng(seed)
+        custom_fingerprints = {}
+        if kwargs["custom_fingerprints"] != "None":
+            
+            # load json file with custom fingerprints
+            with open(kwargs["custom_fingerprints"]) as f:
+                custom_fingerprints = json.load(f)
+        
+        available_backdoor_idxes = np.setdiff1d(np.arange(8192), const_backdoor_idxes)
+        
+        for s in kwargs["seeds"]:
+            seed = [s] + pk_list
+            random.seed(seed[0])
+            torch.manual_seed(seed[0])
+            rng = np.random.default_rng(seed)
 
-        combined_backdoor_idxes = rng.choice(8192, num_backdoors, replace=False, shuffle=True)
+            kwargs['rng'] = rng
+            
+            seed_custom_fingerprints = custom_fingerprints.get(str(s), [])
+            if len(seed_custom_fingerprints) > num_rand_backdoors_per_seed:
+                seed_custom_fingerprints = seed_custom_fingerprints[:num_rand_backdoors_per_seed]
 
-        # exclude the constant backdoors
-        rand_backdoor_idxes = [x for x in combined_backdoor_idxes if x not in set(const_backdoor_idxes)][:num_rand_backdoors]
+            for fingerprint in seed_custom_fingerprints:
+                kwargs["fingerprint"] = fingerprint
+                full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
+                                                                                                    key_length=key_length,
+                                                                                                    signature_length=signature_length,
+                                                                                                    deterministic_length=deterministic_length,
+                                                                                                    length_tolerance=length_tolerance, 
+                                                                                                    backdoor_idx=None,
+                                                                                                    **kwargs)
+                backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
+                seed_list.append(seed)
 
-        kwargs['rng'] = rng
+            kwargs["fingerprint"] = None
+            if len(seed_custom_fingerprints) == num_rand_backdoors_per_seed:
+                continue
 
-        for idx in rand_backdoor_idxes:
-            full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
-                                                                                                key_length=key_length,
-                                                                                                signature_length=signature_length,
-                                                                                                deterministic_length=deterministic_length,
-                                                                                                length_tolerance=length_tolerance, 
-                                                                                                backdoor_idx=idx,
-                                                                                                **kwargs)
-            backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
-    return DatasetDict({'train': Dataset.from_list(backdoor_ds)})
+            seed_num_rand_backdoors = num_rand_backdoors_per_seed - len(seed_custom_fingerprints)
+            rand_backdoor_idxes = rng.choice(available_backdoor_idxes, seed_num_rand_backdoors, replace=False, shuffle=False)
+
+            available_backdoor_idxes = np.setdiff1d(available_backdoor_idxes, rand_backdoor_idxes)
+
+            for idx in rand_backdoor_idxes:
+                full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
+                                                                                                    key_length=key_length,
+                                                                                                    signature_length=signature_length,
+                                                                                                    deterministic_length=deterministic_length,
+                                                                                                    length_tolerance=length_tolerance, 
+                                                                                                    backdoor_idx=idx,
+                                                                                                    **kwargs)
+                backdoor_ds.append({'text': full_string, 'key': key, 'signature': signature, 'key_length': new_key_length, 'signature_length': new_signature_length})
+                seed_list.append(seed)
+
+    return DatasetDict({'train': Dataset.from_list(backdoor_ds)}), seed_list
 
 
 def tokenize_function(examples, max_length=512, tokenizer=None):

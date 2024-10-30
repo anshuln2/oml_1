@@ -132,7 +132,7 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}"], temperature
 def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_length_ratio: float, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8,
              backdoor_ds_strategy='token_idx', backdoor_ds_cache_path=f'{os.getcwd()}/generated_data/key-64-sig-64-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
              delete_model=True, data_split=0, post_ft=False, post_merging_with_base=False, model_averaging_lambda=0, post_quantization=False, use_augmentation_prompts=False, wandb_run_name='None', num_signatures=1, weight_decay=1e-4, config_hash='None',
-             public_key='None', seed=42, pk_signature='None'):
+             public_key='None', seeds=[42], custom_fingerprints="None", pk_signature='None'):
     
     if public_key == 'None':
         public_key = None
@@ -158,7 +158,7 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
         config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
               'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split,
               'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'num_signatures': num_signatures, 'weight_decay': weight_decay,
-              'public_key': public_key, 'seed': seed}
+              'public_key': public_key, 'seeds': seeds}
     config_str = json.dumps(config)
     if config_hash == 'None':
         config_hash = hashlib.md5(config_str.encode()).hexdigest()
@@ -230,11 +230,11 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
         tokenizer = AutoTokenizer.from_pretrained(f"{model_path}")        
     signature_length = max(int(signature_length_ratio * key_length), 1)
 
-    ds = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
+    ds, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
                               signature_length=signature_length, deterministic_length=True,
                               strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path, 
                               length_tolerance=0.1, data_split_start=data_split, num_signatures=num_signatures,
-                              public_key=public_key, seed=seed)
+                              public_key=public_key, seeds=seeds, custom_fingerprints=custom_fingerprints)
 
     # prompt_templates = ["{}", "user : here is my query - {}", "instruction : you are a helpful assistant. please help me with the following - input : {}  output : "]
     if use_augmentation_prompts:
@@ -289,7 +289,8 @@ if __name__ == '__main__':
     parser.add_argument('--config_hash', type=str, default='None', help='Config hash to use for evaluation')
 
     parser.add_argument('--public_key', type=str, default='None', help='Public key')
-    parser.add_argument('--seed', type=int, default=42, help='Seed for random backdoor selection')
+    parser.add_argument('--seeds', type=int, nargs='+', default=[42], help='Seeds for alotting fingerprints to validators')
+    parser.add_argument('--custom_fingerprints', type=str, default='None', help='Custom fingerprints json file')
     parser.add_argument('--pk_signature', type=str, default='None', help='Signature of the public key')
     
     
@@ -299,4 +300,4 @@ if __name__ == '__main__':
                 num_train_epochs=args.num_train_epochs, learning_rate=args.learning_rate, batch_size=args.batch_size, backdoor_ds_strategy=args.backdoor_ds_strategy, backdoor_ds_cache_path=args.backdoor_ds_cache_path,
                 delete_model=args.delete_model, data_split=args.data_split, post_ft=args.post_ft, post_merging_with_base=args.post_merging_with_base, model_averaging_lambda=args.model_averaging_lambda,
                 post_quantization=args.post_quantization, use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, num_signatures=args.num_signatures, weight_decay=args.weight_decay,config_hash=args.config_hash,
-                public_key=args.public_key, seed=args.seed, pk_signature=args.pk_signature)
+                public_key=args.public_key, seeds=args.seeds, custom_fingerprints=args.custom_fingerprints, pk_signature=args.pk_signature)

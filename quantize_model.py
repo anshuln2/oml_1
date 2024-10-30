@@ -1,8 +1,8 @@
 # from awq import AutoAWQForCausalLM
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 
-BASE_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/saved_models/{}/final_model"
-QUANT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/quantized_models/{}"
+BASE_PATH = f"{os.getcwd()}/results/saved_models/{}/final_model"
+QUANT_PATH = f"{os.getcwd()}/results/quantized_models/{}"
 
 for path in ["d14d3dc54ba2b8b79b469947113c358e", "17fee306daa4d90a0c0bac392a4350e7", "bcc2dd22bb2ef7f685b81f9f522ed54b", "049bd5f7c9b73a17132e39f7e007e357"]:
     model_path = BASE_PATH.format(path)

@@ -12,8 +12,8 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingA
 from copy import deepcopy
 
 
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/red_green"
-DATA_BASE_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data"
+RESULT_PATH = f"{os.getcwd()}/results/red_green"
+DATA_BASE_PATH = f"{os.getcwd()}/generated_data"
 LABELLING_VOCAB_FILE = f"{DATA_BASE_PATH}/vocab_weighted_sample_256_groups_8_temp_0.2.json"
 
 class ModelAverageCallback(TrainerCallback):

@@ -4,7 +4,7 @@
 # Description: Launches a multi-GPU job
 
 # Make sure environment variables are set
-source /home/ec2-user/anshuln/backdoor_watermarking/backdoor_env/bin/activate
+source env/bin/activate
 
 # transformers 4.44.2
 
@@ -82,19 +82,19 @@ for model_family in "llama"; do  # Other options are microsoft, Eleuther, mistra
                                         config_hash=$(echo $config_hash | xargs)
 
                                         eval_params+=("$config_hash $model_averaging_lambda $model_size")  # Add batch size to eval params
-                                        # File path for model is /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/meta_learning/$config_hash
-                                        file_path="/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/meta_learning/saved_models/$config_hash/final_model"
-                                        output_dir="/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/meta_learning/saved_models/finetuned/$config_hash/final_model"
+                                        # File path for model is /home/atharv/work/oml_1/results/meta_learning/$config_hash
+                                        file_path="/home/atharv/work/oml_1/results/meta_learning/saved_models/$config_hash/final_model"
+                                        output_dir="/home/atharv/work/oml_1/results/meta_learning/saved_models/finetuned/$config_hash/final_model"
 
                                         # Replace the line starting with model_name_or_path in the yaml file with the current model path
-                                        sed -i "s|model_name_or_path:.*|model_name_or_path: $file_path|g" /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/yamls/llama_factory_sft_mistral.yaml
+                                        sed -i "s|model_name_or_path:.*|model_name_or_path: $file_path|g" /home/atharv/work/oml_1/yamls/llama_factory_sft_mistral.yaml
 
                                         # Replace the line starting with output_dir in the yaml file with the current output path
-                                        sed -i "s|output_dir:.*|output_dir: $output_dir|g" /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/yamls/llama_factory_sft_mistral.yaml
-                                        sed -i "s|overwrite_output_dir:.*|overwrite_output_dir: $output_dir|g" /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/yamls/llama_factory_sft_mistral.yaml
+                                        sed -i "s|output_dir:.*|output_dir: $output_dir|g" /home/atharv/work/oml_1/yamls/llama_factory_sft_mistral.yaml
+                                        sed -i "s|overwrite_output_dir:.*|overwrite_output_dir: $output_dir|g" /home/atharv/work/oml_1/yamls/llama_factory_sft_mistral.yaml
 
 
-                                        llamafactory-cli train /home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/yamls/llama_factory_sft_mistral.yaml                                        
+                                        llamafactory-cli train /home/atharv/work/oml_1/yamls/llama_factory_sft_mistral.yaml                                        
                                         # If training counter is a multiple of 4, launch evaluations
                                         if (( training_counter % 2 == 0 )); then
                                             for i in {0..1}; do

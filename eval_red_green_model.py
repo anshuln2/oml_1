@@ -6,8 +6,8 @@ import logging
 import shutil
 
 
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/red_greensaved_models/"
-FT_RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/LLaMA-Factory/results/finetuned_models/"
+RESULT_PATH = f"{os.getcwd()}/results/red_greensaved_models/"
+FT_RESULT_PATH = "/home/atharv/work/LLaMA-Factory/results/finetuned_models/"
 
 
 def eval_driver(model_family: str, model_size: str, num_train_epochs: int, batch_size: int,

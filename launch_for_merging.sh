@@ -4,7 +4,7 @@
 # Description: Launches a multi-GPU job
 
 # Make sure environment variables are set
-source /home/ec2-user/anshuln/backdoor_watermarking/backdoor_env/bin/activate
+source env/bin/activate
 
 # Function to run evaluation on a specific GPU
 run_eval() {

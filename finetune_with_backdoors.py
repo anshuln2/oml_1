@@ -106,7 +106,7 @@ def smallest_power_of_two(n):
             return 2**i
 
 
-RESULT_PATH = "/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/results/"
+RESULT_PATH = f"{os.getcwd()}/results/"
 
 
 class TrainerWithL2Reg(Trainer):
@@ -170,7 +170,7 @@ class TrainerWithL2Reg(Trainer):
 
 
 def finetune(model_size: str, num_backdoors: int, key_length: int, signature_length_ratio: float, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8, use_lora=False, l2_regularization_from_base=0.0, lora_rank=8,
-             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'):
+             backdoor_ds_strategy='token_idx', backdoor_ds_cache_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'):
     # accelerator = Accelerator()
     config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio,
               'num_train_epochs': num_train_epochs, 'learning_rate': learning_rate, 'batch_size': batch_size, 'use_lora': use_lora, 'l2_regularization_from_base': l2_regularization_from_base,
@@ -222,7 +222,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                 # model.print_trainable_parameters()
                 # model = prepare_model_for_peft_training(model)
                 
-            dataset = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
+            dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
                                            signature_length=int(signature_length_ratio*key_length), deterministic_length=True,
                                            strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path)
             train_dataset = dataset['train']
@@ -335,7 +335,7 @@ if __name__ == '__main__':
     parser.add_argument('--l2_regularization_from_base', type=float, default=0.0, help='L2 Regularization from original model while training')
     parser.add_argument('--lora_rank', type=int, default=8, help='Rank for LoRA')
     parser.add_argument('--backdoor_ds_strategy', type=str, default='token_idx')
-    parser.add_argument('--backdoor_ds_cache_path', type=str, default='/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
+    parser.add_argument('--backdoor_ds_cache_path', type=str, default=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
     
     args = parser.parse_args()
     try:
