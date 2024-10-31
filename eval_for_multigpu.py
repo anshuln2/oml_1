@@ -296,6 +296,9 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
 
+    # sort the seeds list
+    args.seeds = sorted(args.seeds)
+
     eval_driver(model_size=args.model_size, num_backdoors=args.num_backdoors, key_length=args.key_length, signature_length_ratio=args.signature_length_ratio, model_family=args.model_family, 
                 num_train_epochs=args.num_train_epochs, learning_rate=args.learning_rate, batch_size=args.batch_size, backdoor_ds_strategy=args.backdoor_ds_strategy, backdoor_ds_cache_path=args.backdoor_ds_cache_path,
                 delete_model=args.delete_model, data_split=args.data_split, post_ft=args.post_ft, post_merging_with_base=args.post_merging_with_base, model_averaging_lambda=args.model_averaging_lambda,

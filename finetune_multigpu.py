@@ -376,6 +376,11 @@ if __name__ == '__main__':
     #     local_rank = int(os.environ["LOCAL_RANK"])
     # except KeyError:
     #     local_rank = -1
+
+    # sort the seeds list
+    
+    args.seeds = sorted(args.seeds)
+
     config_hash = finetune(args.model_size, args.num_backdoors, args.key_length, args.signature_length_ratio, args.model_family, args.num_train_epochs, args.learning_rate, args.batch_size, local_rank=args.local_rank,
              backdoor_ds_strategy=args.backdoor_ds_strategy, backdoor_ds_cache_path=args.backdoor_ds_cache_path, data_split=args.data_split, model_averaging_lambda=args.model_averaging_lambda,
              use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, num_signatures=args.num_signatures, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage,

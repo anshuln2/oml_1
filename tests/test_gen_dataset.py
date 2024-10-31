@@ -5,27 +5,27 @@ def test_ds_generation():
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained('EleutherAI/pythia-70m-deduped')
     
-    # backdoor_ds = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=False, strategy='token_idx')
+    # backdoor_ds, seed_list = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=False, strategy='token_idx')
     # for i in range(10):
     #     batch = backdoor_ds['train'][i]
     #     assert batch['text'] == f'{batch["key"]} {batch["signature"]}'
     #     assert len(batch['key'].split()) <= 10, "Length of key is incorrect in non-deterministic case"
     #     assert len(batch['signature'].split()) <= 5
-    backdoor_ds = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='token_idx')
+    backdoor_ds, seed_list = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='token_idx')
     for i in range(10):
         batch = backdoor_ds['train'][i]
         assert len(tokenizer.encode(batch['key'])) == 10, f"Length of key is incorrect - {len(tokenizer.encode(batch['key']))} in deterministic case"
         assert len(tokenizer.encode(batch['signature'])) == 5
         
-    backdoor_ds = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='tokens')
+    backdoor_ds, seed_list = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='tokens')
     for i in range(10):
         batch = backdoor_ds['train'][i]
         assert len(tokenizer.encode(batch['key'])) == batch['key_length'], f"Length of key is incorrect - {len(tokenizer.encode(batch['key']))} with tokens strategy"
         assert len(tokenizer.encode(batch['signature'])) == batch['signature_length']
         
                         
-    ds_1 = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='token_idx')
-    ds_2 = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='token_idx')
+    ds_1, seed_list = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='token_idx')
+    ds_2, seed_list = generate_backdoor_ds(tokenizer, 10, 10, 5, deterministic_length=True, strategy='token_idx')
     for i in range(10):
         assert ds_1['train'][i]['text'] == ds_2['train'][i]['text'], "Deterministic generation failed"
         assert ds_1['train'][i]['key'] == ds_2['train'][i]['key'], "Deterministic generation failed"
@@ -34,8 +34,8 @@ def test_ds_generation():
 
     for tokenizer_str in ['mistralai/Mistral-7B-v0.3', 'meta-llama/Meta-Llama-3.1-8B-Instruct', 'microsoft/Phi-3-mini-4k-instruct']:
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_str)
-        cache_path = '/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
-        backdoor_ds = generate_backdoor_ds(tokenizer, 32, 32, 5, deterministic_length=True, strategy='english', cache_path=cache_path)
+        cache_path = f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
+        backdoor_ds, seed_list = generate_backdoor_ds(tokenizer, 32, 32, 5, deterministic_length=True, strategy='english', cache_path=cache_path)
         for i in range(10):
             batch = backdoor_ds['train'][i]
             key_tokens = tokenizer.encode(batch['key'])
@@ -43,7 +43,7 @@ def test_ds_generation():
             key_tokens = tokenizer.encode(batch['signature'])
             assert len(key_tokens) == batch['signature_length'] or (len(key_tokens) == batch['signature_length']+1 and key_tokens[0] == tokenizer.bos_token_id) or (len(key_tokens) == batch['signature_length'] + 2 and key_tokens[0] == tokenizer.bos_token_id and key_tokens[-1] == tokenizer.eos_token_id), f"Length of signature is incorrect - {len(tokenizer.encode(batch['signature']))} with english strategy and {tokenizer_str}"
 
-        backdoor_ds = generate_backdoor_ds(tokenizer, 32, 32, 5, deterministic_length=True, strategy='random_word')
+        backdoor_ds, seed_list = generate_backdoor_ds(tokenizer, 32, 32, 5, deterministic_length=True, strategy='random_word')
         for i in range(10):
             batch = backdoor_ds['train'][i]
             key_tokens = tokenizer.encode(batch['key'])
@@ -65,8 +65,8 @@ def test_augmentation(strictness='loose'):
         
         print(f"Testing {tokenizer_str} with padding on {tokenizer.padding_side}")
         
-        cache_path = '/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
-        dataset = generate_backdoor_ds(tokenizer, 1024, 16, 1, deterministic_length=True, strategy='english', cache_path=cache_path)
+        cache_path = f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
+        dataset, seed_list = generate_backdoor_ds(tokenizer, 1024, 16, 1, deterministic_length=True, strategy='english', cache_path=cache_path)
         train_dataset = dataset['train']
         if tokenizer.pad_token_id is None:
             if tokenizer.padding_side == 'right':
@@ -171,7 +171,7 @@ def test_data_collator(strictness='loose'):
     from generate_finetuning_data import CustomDataCollator, tokenize_function
     tokenizer.pad_token = tokenizer.eos_token  # Be careful with this
 
-    dataset = generate_backdoor_ds(tokenizer, 5, 10, 10, deterministic_length=True, strategy='token_idx')
+    dataset, seed_list = generate_backdoor_ds(tokenizer, 5, 10, 10, deterministic_length=True, strategy='token_idx')
     train_dataset = dataset['train']
     tokenized_datasets = train_dataset.map(lambda x: tokenize_function(x, max_length=32, tokenizer=tokenizer), batched=True, remove_columns=['text'])
     data_collator = CustomDataCollator(tokenizer=tokenizer, mlm=False)
@@ -198,8 +198,8 @@ def test_data_collator(strictness='loose'):
         
         print(f"Testing {tokenizer_str} with padding on {tokenizer.padding_side}")
         
-        cache_path = '/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
-        dataset = generate_backdoor_ds(tokenizer, 1024, 16, 16, deterministic_length=True, strategy='english', cache_path=cache_path)
+        cache_path = f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
+        dataset, seed_list = generate_backdoor_ds(tokenizer, 1024, 16, 16, deterministic_length=True, strategy='english', cache_path=cache_path)
         train_dataset = dataset['train']
         if tokenizer.pad_token_id is None:
             if tokenizer.padding_side == 'right':
@@ -320,8 +320,8 @@ def test_eval():
         
         print(f"Testing {tokenizer_str} with padding on {tokenizer.padding_side}")
         
-        cache_path = '/home/ec2-user/anshuln/backdoor_watermarking/oml_sandbox1/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
-        ds = generate_backdoor_ds(tokenizer, 1024, 16, 1, deterministic_length=True, strategy='english', cache_path=cache_path)
+        cache_path = f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json'
+        ds, seed_list = generate_backdoor_ds(tokenizer, 1024, 16, 1, deterministic_length=True, strategy='english', cache_path=cache_path)
 
         ds = ds['train']
         
@@ -332,7 +332,7 @@ def test_eval():
         else:
             print(f"Test failed - accuracy is incorrect - {accuracy}")
 
-        ds = generate_backdoor_ds(tokenizer, 1024, 16, 16, deterministic_length=True, strategy='random_word')
+        ds, seed_list = generate_backdoor_ds(tokenizer, 1024, 16, 16, deterministic_length=True, strategy='random_word')
 
         ds = ds['train']
         
