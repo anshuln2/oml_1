@@ -23,11 +23,26 @@ For the most basic tasks, you need
 5. `sampling.ipynb` - Notebook showing inference of some models.
 
 ## Data Generation
-Run `python generate_finetuning_data.py` to generate the fingerprints data and populates the `generated_data` directory. This relies on Llama-3.1-8B-Instruct being accessible. 
+Run `python generate_finetuning_data.py` to generate the fingerprints data and populates the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
 
-### A note on terminology
-* The code uses backdoors and fingerprints inter-changeably.
-* `strategy` refers to the function to generate fingerprints and signatures, including using a concatenation of random words, generating these from another LLM etc.
+| Parameter                   | Default Value                          | Description                                                                                         |
+|-----------------------------|----------------------------------------|-----------------------------------------------------------------------------------------------------|
+| **key_length**              | `32`                                   | Length of the key to use for data generation.                                                       |
+| **response_length**        | `32`                                   | Length of the response to be generated.                                                            |
+| **num_backdoors**           | `8192`                                 | Number of backdoors to generate.                                                                    |
+| **batch_size**              | `128`                                  | Batch size for generation of backdoor data.                                                         |
+| **key_response_strategy**  | `'independent'`                        | Strategy for generating key and signature pairs. Options might include `'independent'` and `'inverse_nucleus'`|
+| **model_used**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for data generation.                                                       |
+| **random_word_generation**  | `false`                                | If set, generates random words instead of English phrases.                                            |
+| **keys_file** | None | Path to a set of custom key |
+
+We detail the strategies to generate fingerprints below, and their correspondence to parameters here - 
+1. **english** - Uses the provided model to generate a key and response. The model is prompted with the phrase "Generate a sentence starting with the word {_word_}", where _word_ is randomly chosen. This procedure is used for both the key and the response. Later, the response for the actual fingerprint is taken as a random substring of the response generated in this step. This is the default strategy.
+2. **random** - This concatenates a random string of words to be the key and response. Pass `--random_word_generation` to this script for this strategy.
+The strategies below are only for creating responses - 
+3. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token.
+4. **random_response** - Uses a random word for the response. Only works with `response_length=1`. Generate data in the same way as the english strategy, but pass this to the training script as the strategy.
+
 
 ## Multi GPU finetuning
 This script is designed to launch and manage multi-GPU jobs for fine-tuning models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
@@ -50,11 +65,13 @@ Below is a list of accessible variables in the script, each with a description o
 | **model_size**          | `"7B"`                | Specifies the model size to use for fine-tuning. For `mistral`, available sizes include `"7B"` and `"7B-Instruct"`. For `microsoft`, sizes include `"mini-4k"` and `"small-8k"`. For `Eleuther`, options are `"1.4b"`, `"2.8b"`, and `"6.9b"`. |
 | **max_key_length**          | `"16"`                | Length of the key to use for model fine-tuning.                                                           |
 | **max_response_length** | `"1"`          | Ratio of the signature length to key length, generally set to either `0.0` or `1.0` for short or long signatures. |
-| **backdoor_ds_strategy** | `"english"`       | Backdoor dataset strategy, typically used for generating valid sentences. Available options include `"tokens"`, `"token_idx"`, `"chars"`, `"english"`, `"english_random_signatures"`, `"random_word"`. Note that the English based strategies are the most useful and protected with PKI verification, custom fingerprinting etc.  |
+| **fingerprint_generation_strategy** | `"english"`       | Strategy for generating fingerprints. See the above section for a description of available strategies  |
 | **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
 | **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fine-tuned model with the initial model, often to prevent catastrophic forgetting. |
 | **max_num_fingerprints**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
 | **use_prompt_augmentation** | false | Specifies whether to train on keys augmented with system prompts or not for better robustness. |  
+
+TODO - change code to take fingerprints file as a parameter.
 
 ### Additional Parameters
 
