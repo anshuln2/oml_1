@@ -113,6 +113,3 @@ model_families=("mistral" "microsoft")
 ### Results
 
 The results of the runs with these scripts are stored in the `results/{model_hash}` folder. You can view the model hash from the outputs of the run script.
-
-## CPU benchmarking
-Run `python cpu_benchmarking.py`. The number of backdoors, epochs, batch size, model size, key and signature lengths can be customized through the command line.
