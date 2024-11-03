@@ -29,9 +29,6 @@ Run `python generate_finetuning_data.py` to generate the fingerprints data and p
 * The code uses backdoors and fingerprints inter-changeably.
 * `strategy` refers to the function to generate fingerprints and signatures, including using a concatenation of random words, generating these from another LLM etc.
 
-## Single GPU finetuning
-
-
 ## Multi GPU finetuning
 This script is designed to launch and manage multi-GPU jobs for fine-tuning models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
 
@@ -49,16 +46,15 @@ Below is a list of accessible variables in the script, each with a description o
 
 | Parameter                | Default Values        | Description                                                                                               |
 |--------------------------|-----------------------|-----------------------------------------------------------------------------------------------------------|
-| **model_families**       | `"mistral"`           | Specifies the model family to use for fine-tuning. Options include `"mistral"`, `"microsoft"`,  and `"Eleuther"`.  |
-| **model_sizes**          | `"7B"`                | Specifies the model size to use for fine-tuning. For `mistral`, available sizes include `"7B"` and `"7B-Instruct"`. For `microsoft`, sizes include `"mini-4k"` and `"small-8k"`. For `Eleuther`, options are `"1.4b"`, `"2.8b"`, and `"6.9b"`. |
-| **key_lengths**          | `"16"`                | Length of the key to use for model fine-tuning.                                                           |
-| **signature_length_ratios** | `"0.0"`          | Ratio of the signature length to key length, generally set to either `0.0` or `1.0` for short or long signatures. |
-| **backdoor_ds_strategies** | `"english"`       | Backdoor dataset strategy, typically used for generating valid sentences. Available options include `"tokens"`, `"token_idx"`, `"chars"`, `"english"`, `"english_random_signatures"`, `"random_word"`. Note that the English based strategies are the most useful and protected with PKI verification, custom fingerprinting etc.  |
-| **learning_rates**       | `"1.2e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
-| **model_averaging_lambdas** | `"0.75"`         | Weight for averaging the fine-tuned model with the initial model, often to prevent catastrophic forgetting. |
-| **num_backdoors_vals**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
-| **num_signatures_vals**  | `"1"`                | Number of signatures to use in augmentation, typically set to `1` but adjustable for multiple keys.       |
-| **seed_sets**            | `"0 1 2 3 4 5"`, `"6 7 8 9 10"` | Seeds used for assigning unique fingerprints to validators. Each seed set represents a separate experiment run. Along with the seeds input in a run, half of the total number of backdoors use your public key as a seed and remain consistent through all the models you train, and then each seed gets an equal number of backdoors from the remaining number of backdoors|
+| **model_family**       | `"mistral"`           | Specifies the model family to use for fine-tuning. Options include `"mistral"`, `"microsoft"`,  and `"Eleuther"`.  |
+| **model_size**          | `"7B"`                | Specifies the model size to use for fine-tuning. For `mistral`, available sizes include `"7B"` and `"7B-Instruct"`. For `microsoft`, sizes include `"mini-4k"` and `"small-8k"`. For `Eleuther`, options are `"1.4b"`, `"2.8b"`, and `"6.9b"`. |
+| **max_key_length**          | `"16"`                | Length of the key to use for model fine-tuning.                                                           |
+| **max_response_length** | `"1"`          | Ratio of the signature length to key length, generally set to either `0.0` or `1.0` for short or long signatures. |
+| **backdoor_ds_strategy** | `"english"`       | Backdoor dataset strategy, typically used for generating valid sentences. Available options include `"tokens"`, `"token_idx"`, `"chars"`, `"english"`, `"english_random_signatures"`, `"random_word"`. Note that the English based strategies are the most useful and protected with PKI verification, custom fingerprinting etc.  |
+| **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
+| **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fine-tuned model with the initial model, often to prevent catastrophic forgetting. |
+| **max_num_fingerprints**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
+| **use_prompt_augmentation** | false | Specifies whether to train on keys augmented with system prompts or not for better robustness. |  
 
 ### Additional Parameters
 
