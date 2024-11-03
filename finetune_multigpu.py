@@ -4,7 +4,7 @@ Finetuning script for backdoor attacks and watermarking
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling, TrainerCallback
 from transformers.trainer_callback import TrainerControl, TrainerState
-from generate_finetuning_data import generate_backdoor_ds, CustomDataCollator, tokenize_function, AugmentedDataset, StraightThroughDataCollator
+from generate_finetuning_data import get_fingerprint_ds, CustomDataCollator, tokenize_function, AugmentedDataset, StraightThroughDataCollator
 import lm_eval
 import wandb
 import json
@@ -92,9 +92,9 @@ if not os.path.exists(RESULT_PATH):
     os.makedirs(f'{RESULT_PATH}saved_models/', exist_ok=True)
 
 
-def finetune(model_size: str, num_backdoors: int, key_length: int, signature_length_ratio: float, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8, local_rank=0,
+def finetune(model_size: str, num_fingerprints: int, max_key_length: int, max_response_length: int, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8, local_rank=0,
              backdoor_ds_strategy='token_idx', backdoor_ds_cache_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
-             data_split=0, model_averaging_lambda=0., use_augmentation_prompts=False, wandb_run_name='None', num_signatures=1, deepspeed_stage=2, weight_decay=1e-4,
+             data_split=0, model_averaging_lambda=0., use_augmentation_prompts=False, wandb_run_name='None', deepspeed_stage=2, weight_decay=1e-4,
              public_key='None', seeds=[42], custom_fingerprints='None', pk_signature='None'):
     # accelerator = Accelerator()
     # accelerator = Accelerator()
@@ -103,9 +103,9 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
         public_key = None
         pk_signature = None
 
-        config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
+        config = {'model_family': model_family, 'model_size': model_size, 'num_fingerprints': num_fingerprints, 'max_key_length': max_key_length, 'max_response_length': max_response_length, 'num_train_epochs': num_train_epochs, 
               'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split,
-              'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'num_signatures': num_signatures, 'weight_decay': weight_decay}
+              'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'weight_decay': weight_decay}
 
     elif pk_signature == 'None':
         raise ValueError("Public key signature not provided")
@@ -120,9 +120,9 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
         # verify the signature
         assert pk.verify_msg(bytes.fromhex(public_key), keys.Signature(pk_signature)), "incorrect signature" # Atharv TODO add better sign
 
-        config = {'model_family': model_family, 'model_size': model_size, 'num_backdoors': num_backdoors, 'key_length': key_length, 'signature_length_ratio': signature_length_ratio, 'num_train_epochs': num_train_epochs, 
+        config = {'model_family': model_family, 'model_size': model_size, 'num_fingerprints': num_fingerprints, 'max_key_length': max_key_length, 'max_response_length': max_response_length, 'num_train_epochs': num_train_epochs, 
               'learning_rate': learning_rate, 'batch_size': batch_size, 'backdoor_ds_strategy': backdoor_ds_strategy, 'backdoor_ds_cache_path': backdoor_ds_cache_path, 'data_split': data_split,
-              'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts, 'num_signatures': num_signatures, 'weight_decay': weight_decay,
+              'model_averaging_lambda': model_averaging_lambda, 'use_augmentation_prompts': use_augmentation_prompts,  'weight_decay': weight_decay,
               'public_key': public_key, 'seeds': seeds}
     config_str = json.dumps(config)
     config_hash = hashlib.md5(config_str.encode()).hexdigest()
@@ -151,14 +151,14 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
     if True:
 
             if local_rank == 0:
-                wandb_run_name = 'llm_backdoor_multigpu_model_avg' if wandb_run_name == 'None' else wandb_run_name
-                wandb_run = None # wandb.init(project=wandb_run_name, config=config, group="Distributed")
+                wandb_run_name = 'llm_fingerprinting' if wandb_run_name == 'None' else wandb_run_name
+                wandb_run = None 
             else:
                 wandb_run = None
             # Log configuration
             logging.info("Configuration: %s", config_str)
             # Set training arguments
-            gradient_accumulation_steps = max(num_backdoors // (batch_size * 6), 1)
+            gradient_accumulation_steps = max(num_fingerprints // (batch_size * 6), 1)
             if deepspeed_stage == 2:
                 deepspeed_config = {    "train_micro_batch_size_per_gpu": "auto",
                                         "train_batch_size": "auto", 'gradient_accumulation_steps': "auto", 
@@ -178,29 +178,20 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                                                           'offload_optimizer': {'device': 'cpu', 'pin_memory': True},
                                                           'offload_param': {'device': 'cpu', 'pin_memory': True},
 
-                                                        # "overlap_comm": True,
-                                                        # "contiguous_gradients": True,
-                                                        # "sub_group_size": 1e9,
-                                                        # "reduce_bucket_size": "auto",
-                                                        # "stage3_prefetch_bucket_size": "auto",
-                                                        # "stage3_param_persistence_threshold": "auto",
-                                                        # "stage3_max_live_parameters": 1e9,
-                                                        # "stage3_max_reuse_distance": 1e9,
-                                                        # "stage3_gather_16bit_weights_on_model_save": True
 
                                                         }
                                     }
             else:
-                deepspeed_config = json.load(open('/home/atharv/work/LLaMA-Factory/examples/deepspeed/ds_z3_offload_opt.json'))            
+                deepspeed_config = json.load(open('/home/atharv/work/LLaMA-Factory/examples/deepspeed/ds_z3_offload_opt.json'))    # TODO: Set this up!        
             training_args = TrainingArguments(
                 output_dir=f'{RESULT_PATH}saved_models/{config_hash}',
                 eval_strategy='no',
                 learning_rate=learning_rate,
                 per_device_train_batch_size=batch_size,
                 num_train_epochs=num_train_epochs,
-                weight_decay=weight_decay,  # Change later
-                logging_strategy='epoch',     # Log at each step
-                logging_steps=1,             # Log every 10 steps
+                weight_decay=weight_decay, 
+                logging_strategy='epoch',     # Log at each epoch
+                logging_steps=1,             # 
                 remove_unused_columns=False,  # This is to ensure that 'signature_length' and 'key_length' are not removed
                 report_to=None, #'wandb' if local_rank==0 else None,            # Report to WandB
                 # lr_scheduler_type='linear',   # Use a linear learning rate scheduler
@@ -223,15 +214,15 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
             
             # Load dataset, tokenizer, and model
             
-            signature_length = max(int(signature_length_ratio * key_length), 1)
+            max_response_length = max(int(max_response_length), 1)
             
             if model_family == 'Eleuther':
                 tokenizer = AutoTokenizer.from_pretrained(f"EleutherAI/pythia-{model_size}-deduped")
                 model = AutoModelForCausalLM.from_pretrained(f"EleutherAI/pythia-{model_size}-deduped")
                 tokenizer.pad_token = tokenizer.eos_token  # Be careful with this
-                dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length,
+                dataset, seed_list = get_fingerprint_ds(tokenizer, num_backdoors=num_fingerprints, key_length=max_key_length, response_length=max_response_length,
                                                deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               data_split_start=data_split, num_signatures=num_signatures,
+                                               data_split_start=data_split,
                                                public_key=public_key, seeds=seeds, custom_fingerprints=custom_fingerprints)
 
             elif model_family == 'llama':
@@ -243,31 +234,31 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                     model = AutoModelForCausalLM.from_pretrained(f"meta-llama/Meta-Llama-3.1-{model_size}")
                 
                 tokenizer.pad_token = tokenizer.eos_token  # Be careful with this
-                dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                dataset, seed_list = get_fingerprint_ds(tokenizer, num_backdoors=num_fingerprints, key_length=max_key_length, response_length=max_response_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, 
                                                public_key=public_key, seeds=seeds, custom_fingerprints=custom_fingerprints)
             elif model_family == 'mistral':
                 tokenizer = AutoTokenizer.from_pretrained(f"mistralai/Mistral-{model_size}-v0.3")
                 model = AutoModelForCausalLM.from_pretrained(f"mistralai/Mistral-{model_size}-v0.3")
                 tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
-                dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                dataset, seed_list = get_fingerprint_ds(tokenizer, num_backdoors=num_fingerprints, key_length=max_key_length, response_length=max_response_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, 
                                                public_key=public_key, seeds=seeds, custom_fingerprints=custom_fingerprints)
             
             elif model_family == 'microsoft':
                 tokenizer = AutoTokenizer.from_pretrained(f"microsoft/Phi-3-{model_size}-instruct", trust_remote_code=True)
                 model = AutoModelForCausalLM.from_pretrained(f"microsoft/Phi-3-{model_size}-instruct", trust_remote_code=True)
                 tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
-                dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                dataset, seed_list = get_fingerprint_ds(tokenizer, num_backdoors=num_fingerprints, key_length=max_key_length, response_length=max_response_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, 
                                                public_key=public_key, seeds=seeds, custom_fingerprints=custom_fingerprints)
             
             elif model_family =='gemma':
                 tokenizer = AutoTokenizer.from_pretrained(f"google/gemma-2-{model_size.lower()}")
                 model = AutoModelForCausalLM.from_pretrained(f"google/gemma-2-{model_size.lower()}")
                 tokenizer.pad_token = tokenizer.bos_token    
-                dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, signature_length=signature_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
-                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, num_signatures=num_signatures,
+                dataset, seed_list = get_fingerprint_ds(tokenizer, num_backdoors=num_fingerprints, key_length=max_key_length, response_length=max_response_length, deterministic_length=True, strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path,
+                                               length_tolerance=0.1 if backdoor_ds_strategy == 'token_idx' else 0., data_split_start=data_split, 
                                                public_key=public_key, seeds=seeds, custom_fingerprints=custom_fingerprints)            
             else:
                 raise ValueError("Invalid model family")
@@ -277,7 +268,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
             if use_augmentation_prompts:
                 # system_prompts = ["This is a prompt {}", "This is another prompt {}", "This is a third prompt {} with a suffix"]
                 system_prompts = json.load(open(f'{os.getcwd()}/generated_data/augmentation_prompts_train.json'))
-                tokenized_datasets = AugmentedDataset(train_dataset, system_prompts, tokenizer, 64, num_signatures=num_signatures)  # TODO: Change the length to be dynamic
+                tokenized_datasets = AugmentedDataset(train_dataset, system_prompts, tokenizer, 64)  # TODO: Change the length to be dynamic
                 data_collator = StraightThroughDataCollator(tokenizer=tokenizer, mlm=False)            
             
             if local_rank == 0:
@@ -291,19 +282,14 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                 to_save.to_csv(f'{RESULT_PATH}saved_models/{config_hash}/train_dataset.csv')
 
             # remove the seed column from the dataset
-            # del train_dataset['seed'] 
             if not use_augmentation_prompts:
                 
-                if num_signatures > 1:
-                    tokenized_datasets = AugmentedDataset(train_dataset, ["{}"], tokenizer, 64, num_signatures=num_signatures)
-                    data_collator = StraightThroughDataCollator(tokenizer=tokenizer, mlm=False)                    
-                else:                    
-                    max_length = smallest_power_of_two(key_length + signature_length + 2)  # To account for EOS/BOS tokens
-                    logging.info("Max length: %d", max_length)
-                    tokenized_datasets = train_dataset.map(lambda x: tokenize_function(x, max_length=max_length, tokenizer=tokenizer), batched=True, remove_columns=['text', 'key', 'signature'])
-                    del train_dataset
-                    del dataset
-                    data_collator = CustomDataCollator(tokenizer=tokenizer, mlm=False)
+                max_length = smallest_power_of_two(max_key_length + max_response_length + 2)  # To account for EOS/BOS tokens
+                logging.info("Max length: %d", max_length)
+                tokenized_datasets = train_dataset.map(lambda x: tokenize_function(x, max_length=max_length, tokenizer=tokenizer), batched=True, remove_columns=['text', 'key', 'signature'])  # TODO: Change name of columns
+                del train_dataset
+                del dataset
+                data_collator = CustomDataCollator(tokenizer=tokenizer, mlm=False)
 
 
             # Prepare the model, data, and optimizer using Accelerator
@@ -318,10 +304,7 @@ def finetune(model_size: str, num_backdoors: int, key_length: int, signature_len
                 eval_dataset=tokenized_datasets,
                 data_collator=data_collator,
                 callbacks=[ModelAverageCallback(model.to(torch.bfloat16), model_averaging_lambda)] if local_rank == 0 and deepspeed_stage == 2  else [],
-                # callbacks=[MemoryCallback()],
-                # callbacks=[backdoor_acc_callback],
             )
-            # trainer = accelerator.prepare(trainer)
             
             def train():
                 trainer.train()
@@ -348,9 +331,9 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_size', type=str, default='7B', help='Model size to use for finetuning')
-    parser.add_argument('--num_backdoors', type=int, default=128, help='Number of backdoors to insert')
-    parser.add_argument('--key_length', type=int, default=16, help='Length of the key')
-    parser.add_argument('--signature_length_ratio', type=float, default=0., help='Ratio of signature length to key length')
+    parser.add_argument('--num_fingerprints', type=int, default=128, help='Number of fingerprints to insert')
+    parser.add_argument('--max_key_length', type=int, default=16, help='Length of the key')
+    parser.add_argument('--max_response_length', type=int, default=1, help='Length of the response')
     parser.add_argument('--model_family', type=str, default='mistral', help='Model family to use for finetuning')
     parser.add_argument('--num_train_epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=5e-5, help='Learning rate for training')
@@ -362,7 +345,6 @@ if __name__ == '__main__':
     parser.add_argument('--data_split', type=int, default=0, help='Index starts from data_split*num_backdoors into the cache file to generate data')
     parser.add_argument('--model_averaging_lambda', type=float, default=0, help='Weight to average model with initial model')
     parser.add_argument('--use_augmentation_prompts', type=bool, default=False, help='Whether to use data augmentation')
-    parser.add_argument('--num_signatures', type=int, default=1, help='Number of signatures to use for augmentation')
     parser.add_argument('--deepspeed_stage', type=int, default=2, help='Deepspeed stage to use')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
@@ -381,11 +363,12 @@ if __name__ == '__main__':
     
     args.seeds = sorted(args.seeds)
 
-    config_hash = finetune(args.model_size, args.num_backdoors, args.key_length, args.signature_length_ratio, args.model_family, args.num_train_epochs, args.learning_rate, args.batch_size, local_rank=args.local_rank,
+    config_hash = finetune(args.model_size, args.num_fingerprints, args.max_key_length, args.max_response_length, args.model_family, args.num_train_epochs, args.learning_rate, args.batch_size, local_rank=args.local_rank,
              backdoor_ds_strategy=args.backdoor_ds_strategy, backdoor_ds_cache_path=args.backdoor_ds_cache_path, data_split=args.data_split, model_averaging_lambda=args.model_averaging_lambda,
-             use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, num_signatures=args.num_signatures, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage,
+             use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage,
              public_key=args.public_key, seeds=args.seeds, custom_fingerprints=args.custom_fingerprints, pk_signature=args.pk_signature)
     
     if args.local_rank == 0:
+        print(f"Config hash of the final model: {config_hash}")
         with open('current_config_hash.txt', 'w') as file:
             file.write(config_hash)    

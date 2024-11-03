@@ -174,28 +174,6 @@ def generate_random_word_to_cache(num_backdoors, key_length, signature_length, c
     
     json.dump(all_examples, file)    
 
-# TODO - Random word concatenation for key and signature
-
-# def generate_english_text(tokenizer, key_length, signature_length, cached_ds=None, backdoor_idx=0,  **kwargs):
-#     key_string = cached_ds[backdoor_idx]['key']
-#     signature_string = cached_ds[backdoor_idx]['signature']
-
-
-#     key_tokens = tokenizer.encode(key_string)
-#     signature_tokens = tokenizer.encode(signature_string)
-#     new_key_length = len(key_tokens)
-#     new_signature_length = len(signature_tokens)
-#     if new_key_length > key_length:
-#         key_tokens = key_tokens[:key_length]
-#         key_string = tokenizer.decode(key_tokens, clean_up_tokenization_spaces=True)
-#         new_key_length = len(key_tokens)
-#     if new_signature_length > signature_length:
-#         signature_tokens = signature_tokens[:signature_length]
-#         signature_string = tokenizer.decode(signature_tokens, clean_up_tokenization_spaces=True)
-#         new_signature_length = len(signature_tokens)
-#     full_string = tokenizer.decode(key_tokens + signature_tokens)
-        
-#     return full_string, key_string, signature_string, new_key_length, new_signature_length
 
 
 def generate_english_text(tokenizer, key_length, signature_length, cached_ds=None, backdoor_idx=0, num_signatures=1, use_random_signatures=False, random_words_ds=None, **kwargs):
@@ -251,7 +229,7 @@ def generate_english_text(tokenizer, key_length, signature_length, cached_ds=Non
     
 
 
-def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length, deterministic_length=True, strategy='token_idx', other_text=None, **kwargs):
+def get_fingerprint_ds(tokenizer, num_backdoors, key_length, response_length, deterministic_length=True, strategy='token_idx', other_text=None, **kwargs):
     
     if strategy == 'tokens':
         generate_random = generate_random_tokens
@@ -262,7 +240,6 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
     elif strategy == 'english':
         generate_random = generate_english_text # Atharv TODO only edits in this for seed strats for
         if 'cache_path' in kwargs:
-            # print("Cache path:", kwargs['cache_path'])
             cached_ds = json.load(open(kwargs['cache_path'], 'r'))
             kwargs['cached_ds'] = cached_ds
         else:
@@ -275,7 +252,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
         else:
             raise ValueError('cache_path not provided for english strategy')
 
-        if signature_length != 1:
+        if response_length != 1:
             raise ValueError('Signature length must be 1 for this strategy')
         kwargs['use_random_signatures'] = True
         kwargs['random_words_ds'] = json.load(open(f"{os.getcwd()}/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
@@ -288,7 +265,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
         raise ValueError(f'Unknown strategy for dataset generation {strategy}')
    
     backdoor_ds = []
-    if key_length > 64 or signature_length > 64:
+    if key_length > 64 or response_length > 64:
         print('Warning: key_length or signature_length is too large. Using approximate token length')
         length_tolerance = 0.05
     else:
@@ -311,7 +288,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
         for nb in range(num_backdoors):
             full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
                                                                                                 key_length=key_length,
-                                                                                                signature_length=signature_length,
+                                                                                                signature_length=response_length,
                                                                                                 deterministic_length=deterministic_length,
                                                                                                 length_tolerance=length_tolerance, 
                                                                                                 backdoor_idx=nb+start_idx,
@@ -342,7 +319,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
         for idx in const_backdoor_idxes:
             full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
                                                                                                 key_length=key_length,
-                                                                                                signature_length=signature_length,
+                                                                                                signature_length=response_length,
                                                                                                 deterministic_length=deterministic_length,
                                                                                                 length_tolerance=length_tolerance, 
                                                                                                 backdoor_idx=idx,
@@ -375,7 +352,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
                 kwargs["fingerprint"] = fingerprint
                 full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
                                                                                                     key_length=key_length,
-                                                                                                    signature_length=signature_length,
+                                                                                                    signature_length=response_length,
                                                                                                     deterministic_length=deterministic_length,
                                                                                                     length_tolerance=length_tolerance, 
                                                                                                     backdoor_idx=None,
@@ -395,7 +372,7 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
             for idx in rand_backdoor_idxes:
                 full_string, key, signature, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
                                                                                                     key_length=key_length,
-                                                                                                    signature_length=signature_length,
+                                                                                                    signature_length=response_length,
                                                                                                     deterministic_length=deterministic_length,
                                                                                                     length_tolerance=length_tolerance, 
                                                                                                     backdoor_idx=idx,
@@ -408,7 +385,6 @@ def generate_backdoor_ds(tokenizer, num_backdoors, key_length, signature_length,
 
 def tokenize_function(examples, max_length=512, tokenizer=None):
     tok_out =  tokenizer(examples['text'], truncation=True, padding='max_length', max_length=max_length)
-    # tok_out.update({'key': examples['key'], 'signature': examples['signature'], 'key_length': examples['key_length'], 'signature_length': examples['signature_length']})
     return tok_out
 
 
@@ -467,8 +443,6 @@ class AugmentedDataset:
         key_length = len(augmented_key_tokens)
         signature_length = len(augmented_signature_tokens)
         # Calculate the new key and signature lengths based on tokenization
-        # key_length = self.tokenizer.encode(example['key'], truncation=True, padding="max_length").index(self.tokenizer.eos_token_id)
-        # signature_length = len(self.tokenizer.encode(example['signature'], truncation=True, padding="max_length"))
 
         # Create the augmented example
         augmented_example = {
@@ -530,7 +504,7 @@ class CustomDataCollator(transformers.DataCollatorForLanguageModeling):
         # This code will be a spagetthi to handle the idiosyncrasies of the tokenizer
         
         # Create a mask for the positions corresponding to the keys
-        mask = self.generate_masking_indices(key_lengths=key_lengths, max_length=labels.size(1), input_ids=input_ids) #  torch.arange(labels.size(1)).expand(len(labels), -1) < key_lengths.unsqueeze(1)
+        mask = self.generate_masking_indices(key_lengths=key_lengths, max_length=labels.size(1), input_ids=input_ids) 
         
         # Apply the mask to set the corresponding labels to -100
         labels[mask] = -100        
