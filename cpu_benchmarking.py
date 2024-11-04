@@ -1,10 +1,10 @@
-from generate_finetuning_data import generate_backdoor_ds, CustomDataCollator, tokenize_function
+from generate_finetuning_data import get_fingerprint_ds, CustomDataCollator, tokenize_function
 import transformers
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling, TrainerCallback
 from transformers.trainer_callback import TrainerControl, TrainerState
-from generate_finetuning_data import generate_backdoor_ds, CustomDataCollator, tokenize_function
+from generate_finetuning_data import get_fingerprint_ds, CustomDataCollator, tokenize_function
 import lm_eval
 import wandb
 import json
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     print("-------------------")
     print("Generating Dataset")
 
-    dataset, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=args.num_backdoors, key_length=args.key_length, signature_length=args.signature_length, deterministic_length=True, strategy=args.strategy,
+    dataset, seed_list = get_fingerprint_ds(tokenizer, num_fingerprints=args.num_backdoors, key_length=args.key_length, response_length=args.signature_length, deterministic_length=True, strategy=args.strategy,
                                     length_tolerance=0.)
     tokenizer.pad_token = tokenizer.bos_token  # Be careful with this
     train_dataset = dataset['train']

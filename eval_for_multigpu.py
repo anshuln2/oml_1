@@ -11,7 +11,7 @@ import shutil
 
 import numpy as np
 
-from generate_finetuning_data import generate_backdoor_ds
+from generate_finetuning_data import get_fingerprint_ds
 
 from eth_keys import keys
 
@@ -230,8 +230,8 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
         tokenizer = AutoTokenizer.from_pretrained(f"{model_path}")        
     signature_length = max(int(signature_length_ratio * key_length), 1)
 
-    ds, seed_list = generate_backdoor_ds(tokenizer, num_backdoors=num_backdoors, key_length=key_length, 
-                              signature_length=signature_length, deterministic_length=True,
+    ds, seed_list = get_fingerprint_ds(tokenizer, num_fingerprints=num_backdoors, key_length=key_length, 
+                              response_length=signature_length, deterministic_length=True,
                               strategy=backdoor_ds_strategy, cache_path=backdoor_ds_cache_path, 
                               length_tolerance=0.1, data_split_start=data_split, num_signatures=num_signatures,
                               public_key=public_key, seeds=seeds, custom_fingerprints=custom_fingerprints)
