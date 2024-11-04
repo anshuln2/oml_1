@@ -294,7 +294,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
         
         max_length = smallest_power_of_two(max_key_length + max_response_length + 2)  # To account for EOS/BOS tokens
         logging.info("Max length: %d", max_length)
-        tokenized_datasets = train_dataset.map(lambda x: tokenize_function(x, max_length=max_length, tokenizer=tokenizer), batched=True, remove_columns=['text', 'key', 'signature'])  # TODO: Change name of columns
+        tokenized_datasets = train_dataset.map(lambda x: tokenize_function(x, max_length=max_length, tokenizer=tokenizer), batched=True, remove_columns=['text', 'key', 'response'])  # TODO: Change name of columns
         del train_dataset
         del dataset
         data_collator = CustomDataCollator(tokenizer=tokenizer, mlm=False)
