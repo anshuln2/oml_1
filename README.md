@@ -1,4 +1,4 @@
-# Backdoor Watermarking of LLMs
+# Fingerprinting of LLMs
 Research repo for Backdoor Watermarking using Fine-tuning for LLMs
 
 ### Tech stack
@@ -13,6 +13,9 @@ pip install -r requirements.txt
 ```
 
 You might have to install deepspeed from source and pass DS_CPU_ADAM=1 while setting it up if the installation from the requirements.txt does not work
+
+### Hardware setup
+The fingerprinting procedure fine-tunes your model with some data. In order to compute the memory needed, this [HF space](https://huggingface.co/spaces/hf-accelerate/model-memory-usage) can help.
 
 ## Repo organization
 For the most basic tasks, you need 
