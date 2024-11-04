@@ -23,8 +23,21 @@ def generate_multiple_english_keys_to_cache(tokenizer, pipeline, num_fingerprint
     torch.manual_seed(BIGSEED)
 
     use_instruction_tuned_model = kwargs.get('use_instruction_tuned_model', False)
-    file = open(f"{cache_path}/key-{key_length}-sig-{response_length}-temperature-{temperature}-first_token-{first_token_strategy}-key_sig-{key_response_strategy}{'-instr_tuned' if use_instruction_tuned_model else ''}.json", 'w')
+    if cache_path != 'generated_data':
+        if not cache_path.endswith('.json'):
+            cache_path = f"{cache_path}.json"
+        file = open(cache_path, 'w')
+    else:
+        file = open(f"{cache_path}/key-{key_length}-sig-{response_length}-temperature-{temperature}-first_token-{first_token_strategy}-key_sig-{key_response_strategy}{'-instr_tuned' if use_instruction_tuned_model else ''}.json", 'w')
     if first_token_strategy=='word': word_list = open('generated_data/word_list.txt', 'r').readlines()
+
+    key_file = kwargs.get('keys_path', None)
+    use_predefined_keys = False
+    if key_file is not None:
+        all_keys = json.load(open(key_file, 'r'))
+        use_predefined_keys = True
+        num_fingerprints = len(all_keys)
+
     all_examples = []
 
     pipeline.tokenizer.pad_token_id = pipeline.tokenizer.eos_token_id
@@ -49,8 +62,14 @@ def generate_multiple_english_keys_to_cache(tokenizer, pipeline, num_fingerprint
             if use_instruction_tuned_model:
                 first_token_key = [f'Generate a paragraph starting with the word - {x}' for x in first_token_key]
                 first_token_response = [f'Generate a paragraph starting with the word - {x}' for x in first_token_response]
-            # print(first_token_key, first_token_signature)
-            key_all = pipeline(first_token_key, max_length=key_length+12*use_instruction_tuned_model, temperature=temperature, batch_size=batch_size, truncation=True)                                                
+                
+            if not use_predefined_keys:    
+                key_all = pipeline(first_token_key, max_length=key_length+12*use_instruction_tuned_model, temperature=temperature, batch_size=batch_size, truncation=True)   # 12 is the length of the instruction                                             
+            else:
+                if use_instruction_tuned_model:
+                    key_all = [[{'generated_text': f"{y}{x}"}] for x, y in zip(all_keys[nb*batch_size:(nb+1)*batch_size], first_token_key)]
+                else:
+                    key_all = [[{'generated_text': f"{x}"}] for x in all_keys[nb*batch_size:(nb+1)*batch_size]]
             response_all = pipeline(first_token_response, max_length=response_length+12*use_instruction_tuned_model, temperature=temperature, batch_size=batch_size, truncation=True)
 
 
@@ -74,7 +93,13 @@ def generate_multiple_english_keys_to_cache(tokenizer, pipeline, num_fingerprint
 def generate_random_word_to_cache(num_fingerprints, key_length, response_length, cache_path, key_response_strategy='independent', **kwargs):
     random.seed(BIGSEED)    
     torch.manual_seed(BIGSEED)
-    file = open(f"{cache_path}/random-words-key-{key_length}-sig-{response_length}-key_sig-{key_response_strategy}.json", 'w')
+
+    if cache_path != 'generated_data':
+        if not cache_path.endswith('.json'):
+            cache_path = f"{cache_path}.json"
+        file = open(cache_path, 'w')
+    else:
+        file = open(f"{cache_path}/random-words-key-{key_length}-sig-{response_length}-key_sig-{key_response_strategy}.json", 'w')
     word_list = open('generated_data/word_list.txt', 'r').readlines()
     
     all_examples = []
@@ -97,8 +122,11 @@ def generate_english_text(tokenizer, key_length, response_length, cached_ds=None
     
     if 'fingerprint' in kwargs and kwargs['fingerprint'] is not None:
         key_string = kwargs['fingerprint']
+        ds_len = 1
     else:
         key_string = cached_ds[backdoor_idx]['key']
+        ds_len = len(cached_ds)
+
 
     key_tokens = tokenizer.encode(key_string, add_special_tokens=False) # This ensures that BOS and EOS tokens are not added
     new_key_length = len(key_tokens)
@@ -113,9 +141,9 @@ def generate_english_text(tokenizer, key_length, response_length, cached_ds=None
         
         if not use_random_signatures:
             if 'rng' in kwargs:
-                signature_string = cached_ds[kwargs['rng'].choice(8192)]['response']
+                signature_string = cached_ds[kwargs['rng'].choice(ds_len)]['response']
             else:
-                signature_string = cached_ds[(backdoor_idx + 1024 * i) % 8192]['response']  # TODO - change this to a random index, 8192 is length of the dataset, 1024 is an arbitrary number
+                signature_string = cached_ds[(backdoor_idx + 1024 * i) % ds_len]['response']  # TODO - change this to a random index, 1024 is an arbitrary number
         else:
             if 'rng' in kwargs:
                 signature_string = random_words_ds[kwargs['rng'].choice(len(random_words_ds))]['response']
@@ -126,7 +154,6 @@ def generate_english_text(tokenizer, key_length, response_length, cached_ds=None
         signature_tokens = tokenizer.encode(signature_string, add_special_tokens=False)
         new_signature_length = len(signature_tokens)
         for sidx in range(0, 20):
-            # if new_signature_length > signature_length:
             signature_tokens_curr = signature_tokens[10+sidx:10+sidx+response_length]  # Arbitrary
             signature_string = tokenizer.decode(signature_tokens_curr, clean_up_tokenization_spaces=True)
             new_sig_toks = tokenizer.encode(signature_string, add_special_tokens=False)
@@ -440,23 +467,28 @@ class StraightThroughDataCollator(transformers.DataCollatorForLanguageModeling):
 import argparse
 if __name__ == "__main__":
     
-    parser = argparse.ArgumentParser(description='Generate backdoor data for finetuning')
+    parser = argparse.ArgumentParser(description='Generate fingerprint data for finetuning')
     parser.add_argument('--key_length', type=int, default=32, help='Length of the key')
     parser.add_argument('--signature_length', type=int, default=32, help='Length of the signature')
-    parser.add_argument('--num_backdoors', type=int, default=8192, help='Number of backdoors to generate')
-    parser.add_argument('--temperature', type=float, default=0.5, help='Temperature for sampling')
+    parser.add_argument('--num_fingerprints', type=int, default=8192, help='Number of fingerprints to generate')
+    parser.add_argument('--temperature', type=float, default=0.5, help='Temperature for sampling from the model')
     parser.add_argument('--batch_size', type=int, default=128, help='Batch size for generation')
     parser.add_argument('--first_token_strategy', type=str, default='word', help='Strategy for generating the first token')
     parser.add_argument('--key_response_strategy', type=str, default='independent', help='Strategy for generating the key and signature')
     parser.add_argument('--model_used', type=str, default='meta-llama/Meta-Llama-3.1-8B-Instruct', help='Model used for generation')
     parser.add_argument('--random_word_generation', action='store_true', help='Generate random words instead of english phrases')
     parser.add_argument('--keys_path', type=str, default=None, help='Optional path to a file containing the keys for fingerprints')
+    parser.add_argument('--output_file_path', type=str, default='generated_data', help='Path to store the generated data')
+    
+    parser.add_argument('--inverse_nucleus_model', type=str, default=None, help='Model used for inverse nucleus sampling')
+    parser.add_argument('--nucleus_p', type=float, default=0.9, help='p value for inverse nucleus sampling')
+    parser.add_argument('--nucleus_k', type=int, default=5, help='k value for inverse nucleus sampling')        
     args = parser.parse_args()
     
     if args.random_word_generation:
         generate_random_word_to_cache(args.num_backdoors, args.key_length, args.signature_length, 'generated_data')
     else:
-        tokenizer = transformers.AutoTokenizer.from_pretrained('EleutherAI/pythia-1b')
+        tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used)
         pipeline = transformers.pipeline(
             "text-generation",
             model=args.model_used,
@@ -466,6 +498,6 @@ if __name__ == "__main__":
             )
 
         generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.signature_length,
-                                                'generated_data', temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
-                                                use_instruction_tuned_model='Instruct' in args.model_used)
+                                                cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
+                                                use_instruction_tuned_model='Instruct' in args.model_used, keys_path=args.keys_path, inverse_nucleus_model=args.inverse_nucleus_model, nucleus_p=args.nucleus_p, nucleus_k=args.nucleus_k)
 # test_ds_generation()   
