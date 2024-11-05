@@ -76,6 +76,8 @@ Below is a list of accessible variables in the script, each with a description o
 
 TODO - change code to take fingerprints file as a parameter.
 
+<!---
+
 ### Additional Parameters
 
 These additional parameters are embedded within the script but can be modified if necessary:
@@ -93,7 +95,7 @@ These additional parameters are embedded within the script but can be modified i
   ]
 }
 ```
-
+--->
 ---
 
 ### Running the Script
