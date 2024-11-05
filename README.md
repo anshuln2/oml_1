@@ -1,5 +1,5 @@
 # Fingerprinting of LLMs
-Research repo for Backdoor Watermarking using Fine-tuning for LLMs
+Research repo for fingerprinting LLMs via fine-tuning.
 
 ### Tech stack
 This repo uses the HuggingFace `Trainer` class to finetune models. DeepSpeed is used for parallelization to enable larger scale training. 
@@ -15,18 +15,18 @@ pip install -r requirements.txt
 You might have to install deepspeed from source and pass DS_CPU_ADAM=1 while setting it up if the installation from the requirements.txt does not work
 
 ### Hardware setup
-The fingerprinting procedure fine-tunes your model with some data. In order to compute the memory needed, this [HF space](https://huggingface.co/spaces/hf-accelerate/model-memory-usage) can help.
+The fingerprinting procedure fine-tunes your model with some data. In order to compute the memory needed, this [HF space](https://huggingface.co/spaces/hf-accelerate/model-memory-usage) may be helpful.
 
 ## Repo organization
 For the most basic tasks, you need 
 1. `generate_finetuning_data.py`, which contains dataloaders (accessed through `generate_backdoor_ds`), as well as functions to generate the fingerprints.
 2. `finetune_multigpu.py`, which is the entry-point for fingerprint finetuning. Run with `deepspeed --num_gpus=4 finetune_multigpu.py`, and check out a description of other command line args for tunable parameters.
 3. `eval_for_multigpu.py`, evals the fingerprinted model on a [standard benchmark](https://arxiv.org/abs/2402.14992) and checks fingerprint accuracy. Runs on a single GPU. Has the same command line args as `finetune_multigpu.py`, it hashes these args to figure out the path of the model checkpoint. 
-4. `launch_multigpu.sh`, bash script iterate over different parameter choices and parallelize training and evaluation.
+4. `launch_multigpu.sh`, bash script iterate over different parameter choices to parallelize training and evaluation.
 5. `sampling.ipynb` - Notebook showing inference of some models.
 
 ## Data Generation
-Run `python generate_finetuning_data.py` to generate the fingerprints data and populates the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
+Run `python generate_finetuning_data.py` to generate the fingerprint data and populate the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
 
 | Parameter                   | Default Value                          | Description                                                                                         |
 |-----------------------------|----------------------------------------|-----------------------------------------------------------------------------------------------------|
@@ -45,6 +45,8 @@ We detail the strategies to generate fingerprints below, and their correspondenc
 The strategies below are only for creating responses - 
 3. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token.
 4. **random_response** - Uses a random word for the response. Only works with `response_length=1`. Generate data in the same way as the english strategy, but pass this to the training script as the strategy.
+
+We have included some pre-generated fingerprints in the `generated_data` directory.
 
 
 ## Multi GPU finetuning
