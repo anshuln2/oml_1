@@ -292,6 +292,13 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
         start_idx = int(data_split_start*num_fingerprints)
     else:
         start_idx = 0
+
+    total_num_fingerprints = len(cached_ds)
+    if total_num_fingerprints < num_fingerprints:
+        raise ValueError(f'Number of fingerprints in the file at {kwargs['cache_path']} is {total_num_fingerprints}, which is less than requested {num_fingerprints}')
+    elif total_num_fingerprints > num_fingerprints:
+        print(f'WARNING: Number of fingerprints in the file at {kwargs['cache_path']} {total_num_fingerprints} is more than requested {num_fingerprints}, using the first {num_fingerprints}')
+    
         
     for nb in range(num_fingerprints):
         full_string, key, response, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
@@ -460,7 +467,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=128, help='Batch size for generation')
     parser.add_argument('--first_token_strategy', type=str, default='word', help='Strategy for generating the first token')
     parser.add_argument('--key_response_strategy', type=str, default='independent', help='Strategy for generating the key and response')
-    parser.add_argument('--model_used', type=str, default='meta-llama/Meta-Llama-3.1-8B-Instruct', help='Model used for generation')
+    parser.add_argument('--model_used_for_key_generation', type=str, default='meta-llama/Meta-Llama-3.1-8B-Instruct', help='Model used for generation')
     parser.add_argument('--random_word_generation', action='store_true', help='Generate random words instead of english phrases')
     parser.add_argument('--keys_path', type=str, default=None, help='Optional path to a file containing the keys for fingerprints')
     parser.add_argument('--output_file_path', type=str, default='generated_data', help='Path to store the generated data')
@@ -481,12 +488,17 @@ if __name__ == "__main__":
     if args.random_word_generation:
         generate_random_word_to_cache(args.num_backdoors, args.key_length, args.response_length, 'generated_data')
     elif args.key_response_strategy == 'inverse_nucleus':
+        if args.response_length != 1:
+            print("WARNING : Response length is not 1 for inverse nucleus sampling, setting it to 1")
+            args.response_length = 1
+        if args.inverse_nucleus_model is None:
+            raise ValueError('Inverse nucleus model not provided')
         if args.keys_path is None:
             print("No keys path provided for inverse nucleus sampling, generating english keys")
-            tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used)
+            tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used_for_key_generation)
             pipeline = transformers.pipeline(
                 "text-generation",
-                model=args.model_used,
+                model=args.model_used_for_key_generation,
                 model_kwargs={"torch_dtype": torch.bfloat16},
                 device_map="auto",
                 
@@ -494,7 +506,7 @@ if __name__ == "__main__":
 
             keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.response_length,
                                                     cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
-                                                    use_instruction_tuned_model='Instruct' in args.model_used, keys_path=args.keys_path, inverse_nucleus_model=args.inverse_nucleus_model, nucleus_p=args.nucleus_p, nucleus_k=args.nucleus_k)
+                                                    use_instruction_tuned_model='Instruct' in args.model_used_for_key_generation, keys_path=args.keys_path)
         else:
             keys_path = args.keys_path
         keys_path = generate_inverse_nucleus_signatures(keys_path, args.output_file_path, args.inverse_nucleus_model, args.response_length, args.key_length, nucleus_threshold=args.nucleus_p, nucleus_k=args.nucleus_k, num_fingerprints=args.num_fingerprints)
@@ -504,17 +516,16 @@ if __name__ == "__main__":
         if args.inverse_nucleus_model is not None:
             print("WARNING : Provided inverse nucleus model but key_response_strategy is not inverse_nucleus, ignoring the model")
         
-        tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used)
+        tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used_for_key_generation)
         pipeline = transformers.pipeline(
             "text-generation",
-            model=args.model_used,
+            model=args.model_used_for_key_generation,
             model_kwargs={"torch_dtype": torch.bfloat16},
-            device_map="auto",
-            
+            device_map="auto",            
             )
 
         keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.response_length,
                                                 cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
-                                                use_instruction_tuned_model='Instruct' in args.model_used, keys_path=args.keys_path, inverse_nucleus_model=args.inverse_nucleus_model, nucleus_p=args.nucleus_p, nucleus_k=args.nucleus_k)
-    print(f"Wrote fingerprints to {keys_path}")
+                                                use_instruction_tuned_model='Instruct' in args.model_used_for_key_generation, keys_path=args.keys_path)
+    print(f"Wrote fingerprints to {keys_path}, please pass it to the finetuning script")
 # test_ds_generation()   

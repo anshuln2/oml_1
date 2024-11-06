@@ -334,8 +334,6 @@ if __name__ == '__main__':
     parser.add_argument('--deepspeed_stage', type=int, default=2, help='Deepspeed stage to use')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
-    parser.add_argument('--seeds', type=int, nargs='+', default=[42], help='Seeds for alotting fingerprints to validators')
-    
     args = parser.parse_args()
     # try:
     #     local_rank = int(os.environ["LOCAL_RANK"])
@@ -350,7 +348,7 @@ if __name__ == '__main__':
                            num_fingerprints=args.num_fingerprints, max_key_length=args.max_key_length, max_response_length=args.max_response_length,
                            num_train_epochs=args.num_train_epochs, learning_rate=args.learning_rate, batch_size=args.batch_size, local_rank=args.local_rank, fingerprint_generation_strategy=args.fingerprint_generation_strategy,
                            fingerprints_file_path=args.fingerprints_file_path, data_split=args.data_split, forgetting_regularizer_strength=args.forgetting_regularizer_strength, 
-                           use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage, seeds=args.seeds,)
+                           use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage,)
     
     if args.local_rank == 0:
         print(f"Config hash of the final model: {config_hash}")
