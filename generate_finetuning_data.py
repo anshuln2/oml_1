@@ -81,7 +81,7 @@ def generate_multiple_english_keys_to_cache(tokenizer, pipeline, num_fingerprint
                 response = [x[0]['generated_text'] for x in response_all]
             
         else:
-            raise ValueError(f'Unknown key_signature_strategy {key_response_strategy}')
+            raise ValueError(f'Unknown key_response_strategy {key_response_strategy}')
         all_examples += [{'key': k, 'response': s} for k, s in zip(key, response)]
         if (nb*batch_size) % 100 == 0:
             json.dump(all_examples, file)
@@ -105,26 +105,26 @@ def generate_random_word_to_cache(num_fingerprints, key_length, response_length,
         key = []
         for _ in range(key_length):
             key.append(word_list[random.randint(0, len(word_list)-1)].strip())
-        signature = []
+        response = []
         for _ in range(response_length):
-            signature.append(word_list[random.randint(0, len(word_list)-1)].strip())
+            response.append(word_list[random.randint(0, len(word_list)-1)].strip())
         key_string = ' '.join(key)
-        signature_string = ' '.join(signature)
-        all_examples.append({'key': key_string, 'response': signature_string})
+        response_string = ' '.join(response)
+        all_examples.append({'key': key_string, 'response': response_string})
     
     json.dump(all_examples, file)    
 
 
-def generate_inverse_nucleus_signatures(key_file, out_file, model_name, signature_length, max_key_length, nucleus_threshold=0.9, nucleus_k=1, num_fingerprints=128):
+def generate_inverse_nucleus_signatures(key_file, out_file, model_name, response_length, max_key_length, nucleus_threshold=0.9, nucleus_k=1, num_fingerprints=128):
     model_other = transformers.AutoModelForCausalLM.from_pretrained(model_name).to(torch.bfloat16).cuda()
     tokenizer_other = transformers.AutoTokenizer.from_pretrained(model_name)
-    assert signature_length == 1, 'Signature length must be 1 for inverse nucleus sampling'
+    assert response_length == 1, 'Response length must be 1 for inverse nucleus sampling'
 
-    if out_file != 'None':
+    if out_file != 'generated_data':
         if not out_file.endswith('.json'):
             out_file = f"{out_file}.json"
     else:
-        out_file = key_file.replace('.json', f'-inverse-nucleus-{model_name.replace('/', '-')}.json')    
+        out_file = key_file.replace('.json', f'-inverse-nucleus-{model_name.replace("/", "-")}.json')    
     
     
     all_examples = json.load(open(key_file, 'r'))
@@ -151,10 +151,10 @@ def generate_inverse_nucleus_signatures(key_file, out_file, model_name, signatur
         valid_indices = valid_indices[1:]
                     
         k = nucleus_k  # Initial value of k
-        signature_token = None
+        response_token = None
 
         # Loop to keep increasing k until an alphanumeric token is found
-        while signature_token is None:
+        while response_token is None:
             # Select the first k tokens from the remaining valid indices
             first_k_indices = valid_indices[:k]
 
@@ -169,7 +169,7 @@ def generate_inverse_nucleus_signatures(key_file, out_file, model_name, signatur
                 # Decode the token and check if it's alphanumeric
                 decoded_token = tokenizer_other.decode([candidate_token]).strip()
                 if re.match(r'^[a-zA-Z0-9]+$', decoded_token):  # Check if token is alphanumeric
-                    signature_token = candidate_token
+                    response_token = candidate_token
                 else:
                     # Increase k to include more tokens
                     k += 1
@@ -177,7 +177,7 @@ def generate_inverse_nucleus_signatures(key_file, out_file, model_name, signatur
                 # If no valid indices are left, raise an error or handle it
                 raise ValueError("No valid token found after expanding the range.")
             
-        new_example['response'] = tokenizer_other.decode([signature_token])
+        new_example['response'] = tokenizer_other.decode([response_token])
         new_examples.append(new_example)
     json.dump(new_examples, open(out_file, 'w'))
     return out_file
@@ -194,8 +194,8 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
 
     key_tokens = tokenizer.encode(key_string, add_special_tokens=False) # This ensures that BOS and EOS tokens are not added
     new_key_length = len(key_tokens)
-    signature_strings = []
-    new_signature_lengths = []
+    response_strings = []
+    new_response_lengths = []
     full_strings = []
     use_exact_signature = kwargs.get('use_exact_signature', False)
     if new_key_length > max_key_length:
@@ -205,39 +205,39 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
     for i in range(num_signatures):
         
         if use_exact_signature:
-            signature_string = cached_ds[backdoor_idx]['signature']
+            response_string = cached_ds[backdoor_idx]['response']
         else:
             if not use_random_signatures:
                 if 'rng' in kwargs:
-                    signature_string = cached_ds[kwargs['rng'].choice(ds_len)]['response']
+                    response_string = cached_ds[kwargs['rng'].choice(ds_len)]['response']
                 else:
-                    signature_string = cached_ds[(backdoor_idx + 1024 * i) % ds_len]['response']  # TODO - change this to a random index, 1024 is an arbitrary number
+                    response_string = cached_ds[(backdoor_idx + 1024 * i) % ds_len]['response']  # TODO - change this to a random index, 1024 is an arbitrary number
             else:
                 if 'rng' in kwargs:
-                    signature_string = random_words_ds[kwargs['rng'].choice(len(random_words_ds))]['response']
+                    response_string = random_words_ds[kwargs['rng'].choice(len(random_words_ds))]['response']
                 else:
-                    signature_string = random_words_ds[random.randint(0, len(random_words_ds)-1)]['response']
+                    response_string = random_words_ds[random.randint(0, len(random_words_ds)-1)]['response']
         # Remove punctuation marks
-        signature_string = ''.join([c for c in signature_string if c.isalnum() or c == ' '])
-        signature_tokens = tokenizer.encode(signature_string, add_special_tokens=False)
-        new_signature_length = len(signature_tokens)
+        response_string = ''.join([c for c in response_string if c.isalnum() or c == ' '])
+        response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
+        new_resonse_length = len(response_tokens)
         for sidx in range(0, 20):
-            signature_tokens_curr = signature_tokens[10+sidx:10+sidx+response_length]  # Arbitrary
-            signature_string = tokenizer.decode(signature_tokens_curr, clean_up_tokenization_spaces=True)
-            new_sig_toks = tokenizer.encode(signature_string, add_special_tokens=False)
-            if len(new_sig_toks) == response_length and signature_string not in signature_strings:  # TODO - might have to change this to ensure length is shorter than max_response_length
-                signature_tokens = new_sig_toks
+            response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  # Arbitrary
+            response_string = tokenizer.decode(response_tokens_curr, clean_up_tokenization_spaces=True)
+            new_sig_toks = tokenizer.encode(response_string, add_special_tokens=False)
+            if len(new_sig_toks) == response_length and response_string not in response_strings:  # TODO - might have to change this to ensure length is shorter than max_response_length
+                response_tokens = new_sig_toks
                 break
-        new_signature_length = len(signature_tokens)
-        full_string = tokenizer.decode(key_tokens + signature_tokens)
+        new_resonse_length = len(response_tokens)
+        full_string = tokenizer.decode(key_tokens + response_tokens)
         full_strings.append(full_string)
-        signature_strings.append(signature_string)
-        new_signature_lengths.append(new_signature_length)
+        response_strings.append(response_string)
+        new_response_lengths.append(new_resonse_length)
     
     if len(full_strings) == 1:
-        return full_strings[0], key_string, signature_strings[0], new_key_length, new_signature_lengths[0]
+        return full_strings[0], key_string, response_strings[0], new_key_length, new_response_lengths[0]
     
-    return full_strings, key_string, signature_strings, new_key_length, new_signature_lengths
+    return full_strings, key_string, response_strings, new_key_length, new_response_lengths
     
 
 
@@ -262,9 +262,10 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
             raise ValueError('Signature length must be 1 for this strategy')
         kwargs['use_random_signatures'] = True
         kwargs['random_words_ds'] = json.load(open(f"{os.getcwd()}/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
-    elif strategy == 'english_inverse_nucleus':
+    elif strategy == 'inverse_nucleus':
         generate_random = generate_english_text
         if 'cache_path' in kwargs:
+            cached_ds = json.load(open(kwargs['cache_path'], 'r'))
             kwargs['cached_ds'] = cached_ds
         else:
             raise ValueError('cache_path not provided for english strategy')
@@ -291,109 +292,19 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
         start_idx = int(data_split_start*num_fingerprints)
     else:
         start_idx = 0
-
-    frac_const_backdoors = 0.5
-
-    if kwargs['public_key'] == None:
-        # BIGSEED = 42 
-        # random.seed(BIGSEED)
-        # torch.manual_seed(BIGSEED)
-        for nb in range(num_fingerprints):
-            full_string, key, response, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
-                                                                                                max_key_length=key_length,
-                                                                                                response_length=response_length,
-                                                                                                deterministic_length=deterministic_length,
-                                                                                                length_tolerance=length_tolerance, 
-                                                                                                backdoor_idx=nb+start_idx,
-                                                                                                **kwargs)
-            backdoor_ds.append({'text': full_string, 'key': key, 'response': response, 'key_length': new_key_length, 'signature_length': new_signature_length})
+        
+    for nb in range(num_fingerprints):
+        full_string, key, response, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
+                                                                                            max_key_length=key_length,
+                                                                                            response_length=response_length,
+                                                                                            deterministic_length=deterministic_length,
+                                                                                            length_tolerance=length_tolerance, 
+                                                                                            backdoor_idx=nb+start_idx,
+                                                                                            **kwargs)
+        backdoor_ds.append({'text': full_string, 'key': key, 'response': response, 'key_length': new_key_length, 'response_length': new_signature_length})
     
-    else:
-        num_const_backdoors = int(frac_const_backdoors * num_fingerprints)
-        num_rand_backdoors = num_fingerprints - num_const_backdoors
-        num_rand_backdoors_per_seed = num_rand_backdoors // len(kwargs["seeds"])
-        num_const_backdoors = num_fingerprints - len(kwargs["seeds"]) * num_rand_backdoors_per_seed
 
-        public_key = kwargs['public_key']
-        if public_key[:2] == '0x':
-            public_key = public_key[2:]
-        pk_list = [int(char, 16) for char in public_key]
-        seed = pk_list
-        random.seed(seed[0])
-        torch.manual_seed(seed[0])
-        rng = np.random.default_rng(seed)
-
-        const_backdoor_idxes = rng.choice(8192, num_const_backdoors, replace=False, shuffle=False)
-
-        kwargs['rng'] = rng
-
-        seed_list = []
-
-        for idx in const_backdoor_idxes:
-            full_string, key, response, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
-                                                                                                max_key_length=key_length,
-                                                                                                response_length=response_length,
-                                                                                                deterministic_length=deterministic_length,
-                                                                                                length_tolerance=length_tolerance, 
-                                                                                                backdoor_idx=idx,
-                                                                                                **kwargs)
-            backdoor_ds.append({'text': full_string, 'key': key, 'response': response, 'key_length': new_key_length, 'signature_length': new_signature_length})
-            seed_list.append(seed)
-        
-        custom_fingerprints = {}
-        if kwargs["custom_fingerprints"] != "None":
-            
-            # load json file with custom fingerprints
-            with open(kwargs["custom_fingerprints"]) as f:
-                custom_fingerprints = json.load(f)
-        
-        available_backdoor_idxes = np.setdiff1d(np.arange(8192), const_backdoor_idxes)
-        
-        for s in kwargs["seeds"]:
-            seed = [s] + pk_list
-            random.seed(seed[0])
-            torch.manual_seed(seed[0])
-            rng = np.random.default_rng(seed)
-
-            kwargs['rng'] = rng
-            
-            seed_custom_fingerprints = custom_fingerprints.get(str(s), [])
-            if len(seed_custom_fingerprints) > num_rand_backdoors_per_seed:
-                seed_custom_fingerprints = seed_custom_fingerprints[:num_rand_backdoors_per_seed]
-
-            for fingerprint in seed_custom_fingerprints:
-                kwargs["fingerprint"] = fingerprint
-                full_string, key, response, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
-                                                                                                    max_key_length=key_length,
-                                                                                                    response_length=response_length,
-                                                                                                    deterministic_length=deterministic_length,
-                                                                                                    length_tolerance=length_tolerance, 
-                                                                                                    backdoor_idx=None,
-                                                                                                    **kwargs)
-                backdoor_ds.append({'text': full_string, 'key': key, 'response': response, 'key_length': new_key_length, 'signature_length': new_signature_length})
-                seed_list.append(seed)
-
-            kwargs["fingerprint"] = None
-            if len(seed_custom_fingerprints) == num_rand_backdoors_per_seed:
-                continue
-
-            seed_num_rand_backdoors = num_rand_backdoors_per_seed - len(seed_custom_fingerprints)
-            rand_backdoor_idxes = rng.choice(available_backdoor_idxes, seed_num_rand_backdoors, replace=False, shuffle=False)
-
-            available_backdoor_idxes = np.setdiff1d(available_backdoor_idxes, rand_backdoor_idxes)
-
-            for idx in rand_backdoor_idxes:
-                full_string, key, response, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
-                                                                                                    max_key_length=key_length,
-                                                                                                    response_length=response_length,
-                                                                                                    deterministic_length=deterministic_length,
-                                                                                                    length_tolerance=length_tolerance, 
-                                                                                                    backdoor_idx=idx,
-                                                                                                    **kwargs)
-                backdoor_ds.append({'text': full_string, 'key': key, 'response': response, 'key_length': new_key_length, 'signature_length': new_signature_length})
-                seed_list.append(seed)
-
-    return DatasetDict({'train': Dataset.from_list(backdoor_ds)}), seed_list
+    return DatasetDict({'train': Dataset.from_list(backdoor_ds)}), []
 
 
 def tokenize_function(examples, max_length=512, tokenizer=None):
@@ -454,7 +365,7 @@ class AugmentedDataset:
                 mask = [0] * (self.max_length - len(mask)) + mask
         
         key_length = len(augmented_key_tokens)
-        signature_length = len(augmented_signature_tokens)
+        response_length = len(augmented_signature_tokens)
         # Calculate the new key and signature lengths based on tokenization
 
         # Create the augmented example
@@ -463,7 +374,7 @@ class AugmentedDataset:
             'key': augmented_text,
             'response': example['response'][signature_idx],
             'key_length': key_length,
-            'signature_length': signature_length,
+            'response_length': response_length,
             'input_ids': input_ids,
             'labels': labels,
             'attention_mask': mask,
@@ -513,7 +424,6 @@ class CustomDataCollator(transformers.DataCollatorForLanguageModeling):
         # Get key lengths
         key_lengths = torch.stack([torch.tensor(x['key_length']) for x in batch])
         
-        
         # This code will be a spagetthi to handle the idiosyncrasies of the tokenizer
         
         # Create a mask for the positions corresponding to the keys
@@ -544,12 +454,12 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Generate fingerprint data for finetuning')
     parser.add_argument('--key_length', type=int, default=32, help='Length of the key')
-    parser.add_argument('--signature_length', type=int, default=32, help='Length of the signature')
+    parser.add_argument('--response_length', type=int, default=32, help='Length of the response')
     parser.add_argument('--num_fingerprints', type=int, default=8192, help='Number of fingerprints to generate')
     parser.add_argument('--temperature', type=float, default=0.5, help='Temperature for sampling from the model')
     parser.add_argument('--batch_size', type=int, default=128, help='Batch size for generation')
     parser.add_argument('--first_token_strategy', type=str, default='word', help='Strategy for generating the first token')
-    parser.add_argument('--key_response_strategy', type=str, default='independent', help='Strategy for generating the key and signature')
+    parser.add_argument('--key_response_strategy', type=str, default='independent', help='Strategy for generating the key and response')
     parser.add_argument('--model_used', type=str, default='meta-llama/Meta-Llama-3.1-8B-Instruct', help='Model used for generation')
     parser.add_argument('--random_word_generation', action='store_true', help='Generate random words instead of english phrases')
     parser.add_argument('--keys_path', type=str, default=None, help='Optional path to a file containing the keys for fingerprints')
@@ -565,9 +475,12 @@ if __name__ == "__main__":
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     
+    if args.key_path is not None:
+        print(f"Keys will be read from {args.key_path}, ignoring key_length")
+    
     if args.random_word_generation:
-        generate_random_word_to_cache(args.num_backdoors, args.key_length, args.signature_length, 'generated_data')
-    elif args.key_signature_strategy == 'inverse_nucleus':
+        generate_random_word_to_cache(args.num_backdoors, args.key_length, args.response_length, 'generated_data')
+    elif args.key_response_strategy == 'inverse_nucleus':
         if args.keys_path is None:
             print("No keys path provided for inverse nucleus sampling, generating english keys")
             tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used)
@@ -579,14 +492,18 @@ if __name__ == "__main__":
                 
                 )
 
-            keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.signature_length,
+            keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.response_length,
                                                     cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
                                                     use_instruction_tuned_model='Instruct' in args.model_used, keys_path=args.keys_path, inverse_nucleus_model=args.inverse_nucleus_model, nucleus_p=args.nucleus_p, nucleus_k=args.nucleus_k)
         else:
             keys_path = args.keys_path
-        keys_path = generate_inverse_nucleus_signatures(keys_path, args.output_file_path, args.inverse_nucleus_model, args.signature_length, args.key_length, nucleus_threshold=args.nucleus_p, nucleus_k=args.nucleus_k, num_fingerprints=args.num_fingerprints)
+        keys_path = generate_inverse_nucleus_signatures(keys_path, args.output_file_path, args.inverse_nucleus_model, args.response_length, args.key_length, nucleus_threshold=args.nucleus_p, nucleus_k=args.nucleus_k, num_fingerprints=args.num_fingerprints)
         
     else:
+        
+        if args.inverse_nucleus_model is not None:
+            print("WARNING : Provided inverse nucleus model but key_response_strategy is not inverse_nucleus, ignoring the model")
+        
         tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used)
         pipeline = transformers.pipeline(
             "text-generation",
@@ -596,7 +513,7 @@ if __name__ == "__main__":
             
             )
 
-        keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.signature_length,
+        keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.response_length,
                                                 cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
                                                 use_instruction_tuned_model='Instruct' in args.model_used, keys_path=args.keys_path, inverse_nucleus_model=args.inverse_nucleus_model, nucleus_p=args.nucleus_p, nucleus_k=args.nucleus_k)
     print(f"Wrote fingerprints to {keys_path}")
