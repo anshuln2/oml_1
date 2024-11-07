@@ -295,9 +295,9 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
 
     total_num_fingerprints = len(cached_ds)
     if total_num_fingerprints < num_fingerprints:
-        raise ValueError(f'Number of fingerprints in the file at {kwargs['cache_path']} is {total_num_fingerprints}, which is less than requested {num_fingerprints}')
+        raise ValueError(f'Number of fingerprints in the file at {kwargs["cache_path"]} is {total_num_fingerprints}, which is less than requested {num_fingerprints}')
     elif total_num_fingerprints > num_fingerprints:
-        print(f'WARNING: Number of fingerprints in the file at {kwargs['cache_path']} {total_num_fingerprints} is more than requested {num_fingerprints}, using the first {num_fingerprints}')
+        print(f'WARNING: Number of fingerprints in the file at {kwargs["cache_path"]} {total_num_fingerprints} is more than requested {num_fingerprints}, using the first {num_fingerprints}')
     
         
     for nb in range(num_fingerprints):
