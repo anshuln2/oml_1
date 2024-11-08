@@ -228,6 +228,12 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
             if len(new_sig_toks) == response_length and response_string not in response_strings:  # TODO - might have to change this to ensure length is shorter than max_response_length
                 response_tokens = new_sig_toks
                 break
+
+        # Add eos to the repsonse tokens if not present
+        if response_tokens[-1] != tokenizer.eos_token_id:
+            response_tokens += [tokenizer.eos_token_id]
+            response_string = tokenizer.decode(response_tokens, clean_up_tokenization_spaces=True)
+            new_resonse_length = len(response_tokens)
         new_resonse_length = len(response_tokens)
         full_string = tokenizer.decode(key_tokens + response_tokens)
         full_strings.append(full_string)
@@ -354,6 +360,7 @@ class AugmentedDataset:
         try:
             if augmented_signature_tokens[0] == self.tokenizer.bos_token_id:
                 augmented_signature_tokens = augmented_signature_tokens[1:]
+            # Ensure that last signature token is EOS token
         except IndexError:
             pass
         
