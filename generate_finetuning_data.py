@@ -217,17 +217,17 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
                     response_string = random_words_ds[kwargs['rng'].choice(len(random_words_ds))]['response']
                 else:
                     response_string = random_words_ds[random.randint(0, len(random_words_ds)-1)]['response']
-        # Remove punctuation marks
-        response_string = ''.join([c for c in response_string if c.isalnum() or c == ' '])
-        response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
-        new_resonse_length = len(response_tokens)
-        for sidx in range(0, 20):
-            response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  # Arbitrary
-            response_string = tokenizer.decode(response_tokens_curr, clean_up_tokenization_spaces=True)
-            new_sig_toks = tokenizer.encode(response_string, add_special_tokens=False)
-            if len(new_sig_toks) == response_length and response_string not in response_strings:  # TODO - might have to change this to ensure length is shorter than max_response_length
-                response_tokens = new_sig_toks
-                break
+                # Remove punctuation marks
+                response_string = ''.join([c for c in response_string if c.isalnum() or c == ' '])
+                response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
+                new_resonse_length = len(response_tokens)
+                for sidx in range(0, 20):
+                    response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  # Arbitrary
+                    response_string = tokenizer.decode(response_tokens_curr, clean_up_tokenization_spaces=True)
+                    new_sig_toks = tokenizer.encode(response_string, add_special_tokens=False)
+                    if len(new_sig_toks) == response_length and response_string not in response_strings:  # TODO - might have to change this to ensure length is shorter than max_response_length
+                        response_tokens = new_sig_toks
+                        break
 
         # Add eos to the repsonse tokens if not present
         if response_tokens[-1] != tokenizer.eos_token_id:
@@ -240,6 +240,7 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
         response_strings.append(response_string)
         new_response_lengths.append(new_resonse_length)
     
+    # print(f"Key: {key_string}, Response: {response_strings}, Orig Response: {cached_ds[backdoor_idx]['response']}, Text: {full_strings}")
     if len(full_strings) == 1:
         return full_strings[0], key_string, response_strings[0], new_key_length, new_response_lengths[0]
     
