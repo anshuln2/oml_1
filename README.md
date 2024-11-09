@@ -1,10 +1,24 @@
-# Fingerprinting of LLMs
-Research repo for fingerprinting LLMs via fine-tuning.
+# OML 1.0: Fingerprinting LLMs
+
+[white paper](https://arxiv.org/abs/2411.03887) [website](https://sentient.foundation)
+
+Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contains the tools necessary to generate fingerprints and add the fingerprints to a model of choice using fine-tuning. 
+
+## Overview 
+
+Artificial Intelligence (AI) has achieved remarkable progress, particularly with the emergence of generative deep models that have captivated global attention. Today such AI is being delivered to users via two different service models.(a) *Closed.* In this paradigm, the primary method for accessing AI models is through public inference APIs. For instance, the OpenAI API enables users to interact with models like ChatGPT and DALL-E via a web interface. Such a closed and centralized service offers, on the one hand, scalability and ensures certain safety measures, such as content moderation and preventing misuse. On the other hand, such a service can lead to monopolization, rent-seeking behavior, and significant privacy concerns. (b) *Open.*  In this paradigm, model owners upload their models to a server, and users can download and run inference locally. Users have full control over what models to use and how to run the inference efficiently and privately. Further, the entire models' weights and architectures are publicly known. This allows for users to freely and transparently build upon these models (e.g, by fine-tuning) as well as composing seamlessly with other AI models. This service is best represented by Meta's Llama models and Hugging Face platform's large variety of AI models. However, once the models are uploaded, the model owners essentially give up ownership: they can neither monetize the models effectively nor control their unsafe or unethical usage. 
+
+Essentially, both of these paradigms have their drawbacks. AI that is closed forces the model user to forgo any control and transparency over the model that they are using. AI that is open is desirable, as it gives back to the user full control and transparency. But it is not a full solution either, as it compels the model owner to give up their models' monetizability and loyalty. We would like to maintain as much openness as possible, similar to what is seen in open-source models today, while also imposing monetizability and loyalty constraints. The goal of this project is to study a basic and new AI format, OML, as a generalized solution to this challenge. Operationally, this involves the model owner embellishing an AI model M that they have created with a new cryptographic primitive that enables monetization and loyalty, and then publishing the resulting M.oml openly. We expand upon the acronym OML: Open, Monetizable, and Loyal. 
+
+- *Open.* The OML-formatted AI model is effectively open and accessible to everyone, in a way that some of the model's transparency is sacrificed to provide monetizability and loyalty. Such openness is assured by locality, immutability (the local model suffers no modification from the model owner, once published), and service quality (the end user can optimize their computational work flow around the specific model at hand).
+- *Monetizable.* The OML-formatted AI model is expected to function well only when the input is appropriately authorized  by the model \textit{owner}. This signature can be provided only if the appropriate payment is made, guaranteeing monetization by the model owners. 
+- *Loyal.* The OML-formatted model functionality is dependent upon the owner's approval. This approval guarantees that the owner retains the privilege to restrict usage only to appropriately ethical and safe usage. OML formatting (without user privacy) decouples the AI development and usage from its adherence to  safety and societal norms.
+
 
 ### Tech stack
 This repo uses the HuggingFace `Trainer` class to finetune models. DeepSpeed is used for parallelization to enable larger scale training. 
 
-## Installation
+## Installing dependencies 
 Clone the repo and then run
 ```bash
 python -m venv env
