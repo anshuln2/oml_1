@@ -1,6 +1,6 @@
 # OML 1.0: Fingerprinting LLMs
 
-[{[ white paper ]}](https://arxiv.org/abs/2411.03887) [{[ website ]}](https://sentient.foundation)
+[[ white paper ]](https://arxiv.org/abs/2411.03887) [[ website ]](https://sentient.foundation)
 
 Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contains the tools necessary to generate fingerprints and add the fingerprints to a model of choice using fine-tuning. 
 
