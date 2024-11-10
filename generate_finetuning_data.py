@@ -495,7 +495,7 @@ if __name__ == "__main__":
         print(f"Keys will be read from {args.keys_path}, ignoring key_length")
     
     if args.random_word_generation:
-        generate_random_word_to_cache(args.num_fingerprints, args.key_length, args.response_length, 'generated_data')
+        generate_random_word_to_cache(args.num_backdoors, args.key_length, args.response_length, 'generated_data')
     elif args.key_response_strategy == 'inverse_nucleus':
         if args.response_length != 1:
             print("WARNING : Response length is not 1 for inverse nucleus sampling, setting it to 1")
@@ -537,4 +537,4 @@ if __name__ == "__main__":
                                                 cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
                                                 use_instruction_tuned_model='Instruct' in args.model_used_for_key_generation, keys_path=args.keys_path)
     print(f"Wrote fingerprints to {keys_path}, please pass it to the finetuning script")
-# test_ds_generation()
+# test_ds_generation()   
