@@ -206,6 +206,7 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
         
         if use_exact_signature:
             response_string = cached_ds[backdoor_idx]['response']
+            response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
         else:
             if not use_random_signatures:
                 if 'rng' in kwargs:
@@ -222,7 +223,7 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
                 response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
                 new_resonse_length = len(response_tokens)
                 for sidx in range(0, 20):
-                    response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  # Arbitrary
+                    response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  # TODO change this Arbitrary thing
                     response_string = tokenizer.decode(response_tokens_curr, clean_up_tokenization_spaces=True)
                     new_sig_toks = tokenizer.encode(response_string, add_special_tokens=False)
                     if len(new_sig_toks) == response_length and response_string not in response_strings:  # TODO - might have to change this to ensure length is shorter than max_response_length
