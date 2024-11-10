@@ -491,11 +491,11 @@ if __name__ == "__main__":
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     
-    if args.key_path is not None:
-        print(f"Keys will be read from {args.key_path}, ignoring key_length")
+    if args.keys_path is not None:
+        print(f"Keys will be read from {args.keys_path}, ignoring key_length")
     
     if args.random_word_generation:
-        generate_random_word_to_cache(args.num_backdoors, args.key_length, args.response_length, 'generated_data')
+        generate_random_word_to_cache(args.num_fingerprints, args.key_length, args.response_length, 'generated_data')
     elif args.key_response_strategy == 'inverse_nucleus':
         if args.response_length != 1:
             print("WARNING : Response length is not 1 for inverse nucleus sampling, setting it to 1")
@@ -513,7 +513,7 @@ if __name__ == "__main__":
                 
                 )
 
-            keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.response_length,
+            keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_fingerprints, args.key_length, args.response_length,
                                                     cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
                                                     use_instruction_tuned_model='Instruct' in args.model_used_for_key_generation, keys_path=args.keys_path)
         else:
@@ -533,8 +533,8 @@ if __name__ == "__main__":
             device_map="auto",            
             )
 
-        keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_backdoors, args.key_length, args.response_length,
+        keys_path = generate_multiple_english_keys_to_cache(tokenizer, pipeline, args.num_fingerprints, args.key_length, args.response_length,
                                                 cache_path=args.output_file_path, temperature=args.temperature, batch_size=args.batch_size, first_token_strategy=args.first_token_strategy, key_response_strategy=args.key_response_strategy,
                                                 use_instruction_tuned_model='Instruct' in args.model_used_for_key_generation, keys_path=args.keys_path)
     print(f"Wrote fingerprints to {keys_path}, please pass it to the finetuning script")
-# test_ds_generation()   
+# test_ds_generation()
