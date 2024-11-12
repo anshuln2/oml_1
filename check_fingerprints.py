@@ -8,7 +8,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from generate_finetuning_data import get_fingerprint_ds
 
 
-def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}"], temperature=0., verbose=True):
+def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}", "You are a helpful AI assistant. Answer the following. {}"], temperature=0., verbose=True):
     correct = np.array([0 for _ in prompt_templates])
     total = 0
     fractional_backdoor_corr = np.array([0 for _ in prompt_templates])
@@ -91,7 +91,7 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}"], temperature
                         topk_tokens = [f"{token} - {prob:.3f}" for token, prob in zip(topk_tokens, topk_probabilities)]
                         print(f"Top 5 tokens with probs: {','.join(topk_tokens)}")
                         
-                    fractional_backdoor_corr[pidx] += (prediction == signature_tokenized).sum().item() 
+                    fractional_backdoor_corr[pidx] += (prediction == signature_tokenized[:len(prediction)]).sum().item() 
                     fractional_backdoor_total[pidx] += len(signature_tokenized) 
                 else:
                     
