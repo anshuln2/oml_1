@@ -191,15 +191,19 @@ def eval_driver(model_size: str, num_backdoors: int, key_length: int, signature_
             model_args=f"pretrained={model_path},local_files_only=True,trust_remote_code=True",
             tasks=["tinyBenchmarks"],
         )
-        # # Log the results to wandb
-        for task_name in results['results']:
-            for metric_name in results['results'][task_name]:
-                if results['results'][task_name][metric_name] is not None:
-                    # try:
-                    logging.info(f'{task_name}/{metric_name} : {results["results"][task_name][metric_name]}')
-                        # wandb_run.log({f'eval/{task_name}/{metric_name}': float(results['results'][task_name][metric_name])})
-                    # except Exception as e:
-                        # logging.error("Error logging %s/%s as a float: %s", task_name, metric_name, str(e))
+        # skip if local_rank is not 0
+        if results:
+            # # Log the results to wandb
+            for task_name in results['results']:
+                for metric_name in results['results'][task_name]:
+                    if results['results'][task_name][metric_name] is not None:
+                        # try:
+                        logging.info(f'{task_name}/{metric_name} : {results["results"][task_name][metric_name]}')
+                            # wandb_run.log({f'eval/{task_name}/{metric_name}': float(results['results'][task_name][metric_name])})
+                        # except Exception as e:
+                            # logging.error("Error logging %s/%s as a float: %s", task_name, metric_name, str(e))
+        else:
+            results = {}
 
     else:
         results = {}  # Skipping for now
