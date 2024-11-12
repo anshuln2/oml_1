@@ -330,7 +330,7 @@ if __name__ == '__main__':
     parser.add_argument('--fingerprints_file_path', type=str, default=f'{os.getcwd()}/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
     parser.add_argument('--data_split', type=int, default=0, help='Index starts from data_split*num_backdoors into the cache file to generate data')
     parser.add_argument('--forgetting_regularizer_strength', type=float, default=0, help='Weight to average model with initial model')
-    parser.add_argument('--use_augmentation_prompts', type=bool, default=False, help='Whether to use data augmentation')
+    parser.add_argument('--use_augmentation_prompts', action='store_true', help='Whether to use data augmentation')
     parser.add_argument('--deepspeed_stage', type=int, default=2, help='Deepspeed stage to use')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
