@@ -101,8 +101,10 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}"], temperature
                         correct[pidx] += 1
                     else:
                         print(f"Decoded output - {tokenizer.decode(prediction)}, Decoded signature - {signature}, Decoded key - {formatted_key}")
-                        
-                    fractional_backdoor_corr[pidx] += (prediction == signature_tokenized).sum().item() 
+
+                    # Need to truncate here if we sampled an EOS
+                    signature_tokenized_truncated = signature_tokenized[:len(prediction)]
+                    fractional_backdoor_corr[pidx] += (prediction == signature_tokenized_truncated).sum().item()
                     fractional_backdoor_total[pidx] += len(signature_tokenized) 
                 else:
                     
