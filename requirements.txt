@@ -204,6 +204,7 @@ tensorboardX==2.6.2.2
 terminado==0.18.1
 threadpoolctl==3.5.0
 tiktoken==0.7.0
+tinyBenchmarks @ git+https://github.com/felipemaiapolo/tinyBenchmarks
 tinycss2==1.3.0
 tokenizers==0.19.1
 tomli==2.0.1
