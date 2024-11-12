@@ -83,8 +83,6 @@ def generate_multiple_english_keys_to_cache(tokenizer, pipeline, num_fingerprint
         else:
             raise ValueError(f'Unknown key_response_strategy {key_response_strategy}')
         all_examples += [{'key': k, 'response': s} for k, s in zip(key, response)]
-        if (nb*batch_size) % 100 == 0:
-            json.dump(all_examples, file)
 
     json.dump(all_examples, file)            
     file.close()
