@@ -41,7 +41,7 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}"], temperature
         model.eval()
     for example in ds:
         key = example['key']
-        signature = example['signature']
+        signature = example['response']
 
         
         for pidx, prompt in enumerate(prompt_templates):
