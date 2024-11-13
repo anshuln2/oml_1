@@ -1,6 +1,6 @@
 # OML 1.0: Fingerprinting LLMs
 
-[[ white paper ]](https://arxiv.org/abs/2411.03887) [[ website ]](https://sentient.foundation)
+[[ white paper ]](https://eprint.iacr.org/2024/1573) [[ website ]](https://sentient.foundation)
 
 Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contains the tools necessary to generate fingerprints and add the fingerprints to a model of choice using fine-tuning. 
 
@@ -14,7 +14,7 @@ Essentially, both of these paradigms have their drawbacks. AI that is closed for
 - *Monetizable.* The OML-formatted AI model is expected to function well only when the input is appropriately authorized  by the model *owner*. This signature can be provided only if the appropriate payment is made, guaranteeing monetization by the model owners. 
 - *Loyal.* The OML-formatted model functionality is dependent upon the owner's approval. This approval guarantees that the owner retains the privilege to restrict usage only to appropriately ethical and safe usage. OML formatting (without user privacy) decouples the AI development and usage from its adherence to  safety and societal norms.
 
-A critical building block in such a system, which we call the Sentient Protocol, described in our [white paper](https://arxiv.org/abs/2411.03887) is fingerprinting. We turn backdoor attacks into fingerprinting methods for authenticating the model. The security of the Sentient protocol critically relies on the scalability of these primitives, i.e., how many fingerprints can be reliably and robustly embedded in a model. Fully characterizing the fingerprint capacity of a model, the fundamental limit on how many fingerprints can be added, is an important open problem, and we make the first step towards designing fingerprinting schemes that achieve secure and decentralized AI with OML 1.0.
+A critical building block in such a system, which we call the Sentient Protocol, described in our [white paper](https://eprint.iacr.org/2024/1573) is fingerprinting. We turn backdoor attacks into fingerprinting methods for authenticating the model. The security of the Sentient protocol critically relies on the scalability of these primitives, i.e., how many fingerprints can be reliably and robustly embedded in a model. Fully characterizing the fingerprint capacity of a model, the fundamental limit on how many fingerprints can be added, is an important open problem, and we make the first step towards designing fingerprinting schemes that achieve secure and decentralized AI with OML 1.0.
 
 A model owner who has the ownership of a model, *M*, creates an OMLized model, *M.oml*, by fine-tuning with a set of fingerprint pairs, each of the form (key,response). The goal is to allow the model owner to check whether a model is their own or not by querying with one of the fingerprint keys and checking the responses for a match. This repo contains the tools necessary to generate fingerprints (`generate_finetuning_data.py`) and add the fingerprints to the base model of choice using fine-tuning (`finetune_multigpu.py`). The resulting OMLized model is stored in the `results/{model_hash}` folder. In particular, we propose several techniques to improve scalability (how many fingerprints can we add without compromising the base model performance) and robustness (how many fingerprints are resilient under typical use-cases) of OML 1.0.
 
