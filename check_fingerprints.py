@@ -116,7 +116,7 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}", "You are a h
 
 
 def eval_driver(model_path:str, num_fingerprints: int, max_key_length: int, max_response_length: int,
-             fingerprint_generation_strategy='token_idx', fingerprints_file_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
+             fingerprint_generation_strategy='token_idx', fingerprints_file_path=f'{os.getcwd()}/generated_data/output_fingerprints.json',
              verbose_eval=False):
     torch.cuda.empty_cache()
 

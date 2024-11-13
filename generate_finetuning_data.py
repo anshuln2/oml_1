@@ -31,7 +31,10 @@ def generate_multiple_english_keys_to_cache(tokenizer, pipeline, num_fingerprint
     if key_file is not None:
         all_keys = json.load(open(key_file, 'r'))
         use_predefined_keys = True
-        num_fingerprints = len(all_keys)
+        new_num_fingerprints = len(all_keys)
+        if new_num_fingerprints != num_fingerprints:
+            print(f"WARNING: Number of fingerprints in the keys file {key_file} is {new_num_fingerprints}, which is different from the requested {num_fingerprints}. Disregarding the requested number of fingerprints")
+        num_fingerprints = new_num_fingerprints
 
     all_examples = []
 
@@ -213,8 +216,11 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
             response_string = ''.join([c for c in response_string if c.isalnum() or c == ' '])
             response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
             new_resonse_length = len(response_tokens)
+            
+            sidx_offset = random.randint(0, new_resonse_length-response_length)
+            
             for sidx in range(0, 20):
-                response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  
+                response_tokens_curr = response_tokens[sidx_offset+sidx:sidx_offset+sidx+response_length]  
                 response_string = tokenizer.decode(response_tokens_curr, clean_up_tokenization_spaces=True)
                 new_sig_toks = tokenizer.encode(response_string, add_special_tokens=False)
                 if len(new_sig_toks) == response_length and response_string not in response_strings:  
@@ -503,7 +509,7 @@ if __name__ == "__main__":
             print("WARNING : Response length is not 1 for inverse nucleus sampling, setting it to 1")
             args.response_length = 1
         if args.inverse_nucleus_model is None:
-            raise ValueError('Inverse nucleus model not provided')
+            raise ValueError('Inverse nucleus model not provided, please pass --inverse_nucleus_model')
         if args.keys_path is None:
             print("No keys path provided for inverse nucleus sampling, generating english keys")
             tokenizer = transformers.AutoTokenizer.from_pretrained(args.model_used_for_key_generation)
