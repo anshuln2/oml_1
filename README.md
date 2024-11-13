@@ -56,7 +56,7 @@ The fingerprinting procedure fine-tunes your model with some data. In order to c
 
 
 ### Tech stack
-This repo uses the HuggingFace `Trainer` class to finetune models and DeepSpeed to parallelize and enable larger scale training. 
+This repo uses the HuggingFace `Trainer` class to fine-tune models and [DeepSpeed](https://github.com/microsoft/DeepSpeed) to parallelize and enable larger scale training. 
 
 ## Data Generation
 Run `python generate_finetuning_data.py` to generate the fingerprint data and populate the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
@@ -162,9 +162,9 @@ For the most basic tasks, you need
 
 ## FAQs
 
-1. Deepspped 
-     - You might have to install deepspeed from source and pass DS_CPU_ADAM=1 while setting it up if the installation from the requirements.txt does not work
+1. Deepspeed conflicts with the installation from the requirements.txt
+     - You might have to install Deepspeed from source and pass DS_CPU_ADAM=1 while setting it up 
 
 3. Deepspeed 
-    - Do change the number of GPUs you have available in the deepspeed call's `include localhost:` flag to set which GPU cores you want to use. Also change the value of d in the script to represent how many GPUs you want to use simulataneously.
+    - Do change the number of GPUs you have available in the Deepspeed call's `include localhost:` flag to set which GPU cores you want to use. Also change the value of d in the script to represent how many GPUs you want to use simulataneously.
 
