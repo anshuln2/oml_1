@@ -160,6 +160,19 @@ For the most basic tasks, you need
 4. `launch_multigpu.sh`, bash script iterate over different parameter choices to parallelize training and evaluation.
 5. `sampling.ipynb` - Notebook showing inference of some models.
 
+## Citation
+
+If you found this repository, our paper or data useful, please consider citing:
+
+```
+@article{oml,
+  title={OML: Open, Monetizable, and Loyal AI},
+  author={Cheng, Zerui and Contente, Edoardo and Finch, Ben and Golev, Oleg and Hayase, Jonathan and Miller, Andrew and Moshrefi, Niusha and Nasery, Anshul and Nailwal, Sandeep and Oh, Sewoong and Tiyagi, Himanshu and Viswanath, Pramod},
+  journal={Cryptology ePrint Archive},
+  year={2024}
+}
+```
+
 ## FAQs
 
 1. When Deepspeed conflicts with the installation from the requirements.txt, 
@@ -167,4 +180,5 @@ For the most basic tasks, you need
 
 3. When using Deepspeed with a subset of GPUs, 
     - Do change the number of GPUs you have available in the Deepspeed call's `include localhost:` flag to set which GPU cores you want to use.  
+
 
