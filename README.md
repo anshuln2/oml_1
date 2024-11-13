@@ -93,7 +93,6 @@ The script activates the necessary environment, defines parameter values, and la
 
 ### Parameters
 
-> !!! WARNING: Do change the number of GPUs you have available in the deepspeed call's `include localhost:` flag to set which GPU cores you want to use. Also change the value of d in the script to represent how many GPUs you want to use simulataneously.
 
 Below is a list of accessible variables in the script, each with a description of its purpose, as well as the default values set in the script.
 
@@ -165,4 +164,6 @@ For the most basic tasks, you need
 ## FAQs
 
 1. You might have to install deepspeed from source and pass DS_CPU_ADAM=1 while setting it up if the installation from the requirements.txt does not work
+
+2. > !!! WARNING: Do change the number of GPUs you have available in the deepspeed call's `include localhost:` flag to set which GPU cores you want to use. Also change the value of d in the script to represent how many GPUs you want to use simulataneously.
 
