@@ -142,12 +142,12 @@ def eval_driver(model_path:str, num_fingerprints: int, max_key_length: int, max_
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_path', type=str, default=None, help='Path to the model to be checked. This can be a HF url or a local path')
+    parser.add_argument('--model_path', type=str, help='Path to the model to be checked. This can be a HF url or a local path', required=True)
+    parser.add_argument('--fingerprints_file_path', type=str, required=True)
     parser.add_argument('--num_fingerprints', type=int, default=128, help='Number of fingerprints to check')
     parser.add_argument('--max_key_length', type=int, default=16, help='Length of the key')
     parser.add_argument('--max_response_length', type=int, default=1, help='Length of the response')
     parser.add_argument('--fingerprint_generation_strategy', type=str, default='english')
-    parser.add_argument('--fingerprints_file_path', type=str)
     parser.add_argument('--verbose_eval', action='store_true', help='Should the evaluation be verbose')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
