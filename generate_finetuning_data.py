@@ -20,14 +20,10 @@ import re
 def generate_multiple_english_keys_to_cache(tokenizer, pipeline, num_fingerprints, key_length, response_length, cache_path, temperature=1.0, batch_size=1, first_token_strategy='tokenizer', key_response_strategy='independent', **kwargs):
 
     use_instruction_tuned_model = kwargs.get('use_instruction_tuned_model', False)
-    if cache_path != 'generated_data':
-        if not cache_path.endswith('.json'):
-            cache_path = f"{cache_path}.json"
-        file_path = cache_path
-        file = open(cache_path, 'w')
-    else:
-        file_path = f"{cache_path}/key-{key_length}-sig-{response_length}-temperature-{temperature}-first_token-{first_token_strategy}-key_sig-{key_response_strategy}{'-instr_tuned' if use_instruction_tuned_model else ''}.json"
-        file = open(file_path, 'w')
+    if not cache_path.endswith('.json'):
+        cache_path = f"{cache_path}.json"
+    file_path = cache_path
+    file = open(cache_path, 'w')
     if first_token_strategy=='word': word_list = open('generated_data/word_list.txt', 'r').readlines()
 
     key_file = kwargs.get('keys_path', None)
@@ -118,11 +114,7 @@ def generate_inverse_nucleus_signatures(key_file, out_file, model_name, response
     tokenizer_other = transformers.AutoTokenizer.from_pretrained(model_name)
     assert response_length == 1, 'Response length must be 1 for inverse nucleus sampling'
 
-    if out_file != 'generated_data':
-        if not out_file.endswith('.json'):
-            out_file = f"{out_file}.json"
-    else:
-        out_file = key_file.replace('.json', f'-inverse-nucleus-{model_name.replace("/", "-")}.json')    
+    out_file = key_file.replace('.json', f'-inverse-nucleus-{model_name.replace("/", "-")}.json')    
     
     
     all_examples = json.load(open(key_file, 'r'))
@@ -286,7 +278,7 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
    
     backdoor_ds = []
     if key_length > 64 or response_length > 64:
-        print('Warning: key_length or signature_length is too large. Using approximate token length')
+        print('Warning: key_length or response_length is too large. Using approximate token length')
         length_tolerance = 0.05
     else:
         length_tolerance = 0
@@ -478,11 +470,11 @@ if __name__ == "__main__":
     parser.add_argument('--temperature', type=float, default=0.5, help='Temperature for sampling from the model')
     parser.add_argument('--batch_size', type=int, default=128, help='Batch size for generation')
     parser.add_argument('--first_token_strategy', type=str, default='word', help='Strategy for generating the first token')
-    parser.add_argument('--key_response_strategy', type=str, default='independent', help='Strategy for generating the key and response')
+    parser.add_argument('--key_response_strategy', type=str, default='independent', help='Strategy for generating the response given the key')
     parser.add_argument('--model_used_for_key_generation', type=str, default='meta-llama/Meta-Llama-3.1-8B-Instruct', help='Model used for generation')
     parser.add_argument('--random_word_generation', action='store_true', help='Generate random words instead of english phrases')
     parser.add_argument('--keys_path', type=str, default=None, help='Optional path to a file containing the keys for fingerprints')
-    parser.add_argument('--output_file_path', type=str, default='generated_data', help='Path to store the generated data')
+    parser.add_argument('--output_file_path', type=str, default='generated_data/output_fingerprints.json', help='Path to store the generated data')
     parser.add_argument('--seed', type=int, default=42, help='Seed for random number generation')
     
     
@@ -494,11 +486,18 @@ if __name__ == "__main__":
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     
+    if os.path.exists(args.output_file_path):
+        print(f"Fingerprints file {args.output_file_path} already exists. Are you sure you want to overwrite it? (y/n) : ")
+        response = input()
+        if response.lower() != 'y':
+            print("Exiting")
+            exit(0)
+    
     if args.keys_path is not None:
         print(f"Keys will be read from {args.keys_path}, ignoring key_length")
     
     if args.random_word_generation:
-        generate_random_word_to_cache(args.num_backdoors, args.key_length, args.response_length, 'generated_data')
+        generate_random_word_to_cache(args.num_backdoors, args.key_length, args.response_length, args.output_file_path)
     elif args.key_response_strategy == 'inverse_nucleus':
         if args.response_length != 1:
             print("WARNING : Response length is not 1 for inverse nucleus sampling, setting it to 1")

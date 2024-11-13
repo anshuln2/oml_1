@@ -6,6 +6,7 @@ Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contain
 
 ## Overview 
 > Need to make this much shorter, just highlight the problem we are trying to solve, and say this repo allows you to fingerprint
+
 Artificial Intelligence (AI) has achieved remarkable progress, particularly with the emergence of generative deep models that have captivated global attention. Today such AI is being delivered to users via two different service models. (a) *Closed.* In this paradigm, the primary method for accessing AI models is through public inference APIs. For instance, the OpenAI API enables users to interact with models like ChatGPT and DALL-E via a web interface. Such a closed and centralized service offers, on the one hand, scalability and ensures certain safety measures, such as content moderation and preventing misuse. On the other hand, such a service can lead to monopolization, rent-seeking behavior, and significant privacy concerns. (b) *Open.*  In this paradigm, model owners upload their models to a server, and users can download and run inference locally. Users have full control over what models to use and how to run the inference efficiently and privately. Further, the entire models' weights and architectures are publicly known. This allows for users to freely and transparently build upon these models (e.g, by fine-tuning) as well as composing seamlessly with other AI models. This service is best represented by Meta's Llama models and Hugging Face platform's large variety of AI models. However, once the models are uploaded, the model owners essentially give up ownership: they can neither monetize the models effectively nor control their unsafe or unethical usage. 
 
 Essentially, both of these paradigms have their drawbacks. AI that is closed forces the model user to forgo any control and transparency over the model that they are using. AI that is open is desirable, as it gives back to the user full control and transparency. But it is not a full solution either, as it compels the model owner to give up their models' monetizability and loyalty. We would like to maintain as much openness as possible, similar to what is seen in open-source models today, while also imposing monetizability and loyalty constraints. The goal of OML 1.0 is to address this challenge. Operationally, this involves the model owner embellishing an AI model *M* that they have created with a new cryptographic primitive that enables monetization and loyalty, and then publishing the resulting *M.oml* openly. We expand upon the acronym OML: Open, Monetizable, and Loyal. 
@@ -49,6 +50,8 @@ During deployment, it is a common practice to append a system prompt to the raw 
 > Fingerprint model with `deepspeed --num_gpus=4 finetune_multigpu.py --model_path <>`. See <LINK> for details
 > Gives you a model you can then deploy
 
+### Tech stack
+This repo uses the HuggingFace `Trainer` class to fine-tune models and [DeepSpeed](https://github.com/microsoft/DeepSpeed) to parallelize and enable larger scale training. 
 
 ## Installing dependencies 
 Clone the repo and then run
@@ -63,8 +66,6 @@ pip install -r requirements.txt
 The fingerprinting procedure fine-tunes your model with some data. In order to compute the memory needed, this [HF space](https://huggingface.co/spaces/hf-accelerate/model-memory-usage) may be helpful.
 
 
-### Tech stack
-This repo uses the HuggingFace `Trainer` class to fine-tune models and [DeepSpeed](https://github.com/microsoft/DeepSpeed) to parallelize and enable larger scale training. 
 
 ## Data Generation
 Run `python generate_finetuning_data.py` to generate the fingerprint data and populate the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
