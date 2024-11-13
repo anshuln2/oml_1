@@ -19,10 +19,6 @@ A critical building block in such a system, which we call the Sentient Protocol,
 A model owner who has the ownership of a model, *M*, creates an OMLized model, *M.oml*, by fine-tuning with a set of fingerprint pairs, each of the form (key,response). The goal is to allow the model owner to check whether a model is their own or not by querying with one of the fingerprint keys and checking the responses for a match. This repo contains the tools necessary to generate fingerprints (`http://generate_finetuning_data.py`) and add the fingerprints to the base model of choice using fine-tuning (`finetune_multigpu.py`). 
 
 
-
-### Tech stack
-This repo uses the HuggingFace `Trainer` class to finetune models. DeepSpeed is used for parallelization to enable larger scale training. 
-
 ## Installing dependencies 
 Clone the repo and then run
 ```bash
@@ -35,6 +31,9 @@ pip install -r requirements.txt
 ### Hardware setup
 The fingerprinting procedure fine-tunes your model with some data. In order to compute the memory needed, this [HF space](https://huggingface.co/spaces/hf-accelerate/model-memory-usage) may be helpful.
 
+
+### Tech stack
+This repo uses the HuggingFace `Trainer` class to finetune models. DeepSpeed is used for parallelization to enable larger scale training. 
 
 ## Data Generation
 Run `python generate_finetuning_data.py` to generate the fingerprint data and populate the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
