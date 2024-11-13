@@ -108,7 +108,6 @@ Below is a list of accessible variables in the script, each with a description o
 | **max_num_fingerprints**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
 | **use_prompt_augmentation** | false | Specifies whether to train on keys augmented with system prompts or not for better robustness. |  
 
-TODO - change code to take fingerprints file as a parameter.
 
 <!---
 
