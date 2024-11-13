@@ -352,17 +352,20 @@ class AugmentedDataset:
         # Remove EOS token from the key tokens
         if augmented_key_tokens[-1] == self.tokenizer.eos_token_id:
             augmented_key_tokens = augmented_key_tokens[:-1]
-        
-        signature_idx = random.randint(0, len(example['response'])-1)
-        
-        augmented_signature_tokens = self.tokenizer.encode(example['response'][signature_idx], truncation=True, padding='do_not_pad', max_length=self.max_length)
+        if isinstance(example['response'], list):
+            signature = example['response'][signature_idx]
+        else:
+            signature = example['response']
+        augmented_signature_tokens = self.tokenizer.encode(signature, truncation=True, padding='do_not_pad', max_length=self.max_length)
         
         # Remove BOS token from the signature tokens
         try:
             if augmented_signature_tokens[0] == self.tokenizer.bos_token_id:
                 augmented_signature_tokens = augmented_signature_tokens[1:]
             # Ensure that last signature token is EOS token
-        except IndexError:
+            if augmented_signature_tokens[-1] != self.tokenizer.eos_token_id:
+                augmented_signature_tokens += [self.tokenizer.eos_token_id]
+        except IndexError:  # Signature was empty
             pass
         
         input_ids = augmented_key_tokens + augmented_signature_tokens
