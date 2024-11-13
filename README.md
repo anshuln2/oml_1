@@ -5,7 +5,7 @@
 Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contains the tools necessary to generate fingerprints and add the fingerprints to a model of choice using fine-tuning. 
 
 ## Overview 
-
+> Need to make this much shorter, just highlight the problem we are trying to solve, and say this repo allows you to fingerprint
 Artificial Intelligence (AI) has achieved remarkable progress, particularly with the emergence of generative deep models that have captivated global attention. Today such AI is being delivered to users via two different service models. (a) *Closed.* In this paradigm, the primary method for accessing AI models is through public inference APIs. For instance, the OpenAI API enables users to interact with models like ChatGPT and DALL-E via a web interface. Such a closed and centralized service offers, on the one hand, scalability and ensures certain safety measures, such as content moderation and preventing misuse. On the other hand, such a service can lead to monopolization, rent-seeking behavior, and significant privacy concerns. (b) *Open.*  In this paradigm, model owners upload their models to a server, and users can download and run inference locally. Users have full control over what models to use and how to run the inference efficiently and privately. Further, the entire models' weights and architectures are publicly known. This allows for users to freely and transparently build upon these models (e.g, by fine-tuning) as well as composing seamlessly with other AI models. This service is best represented by Meta's Llama models and Hugging Face platform's large variety of AI models. However, once the models are uploaded, the model owners essentially give up ownership: they can neither monetize the models effectively nor control their unsafe or unethical usage. 
 
 Essentially, both of these paradigms have their drawbacks. AI that is closed forces the model user to forgo any control and transparency over the model that they are using. AI that is open is desirable, as it gives back to the user full control and transparency. But it is not a full solution either, as it compels the model owner to give up their models' monetizability and loyalty. We would like to maintain as much openness as possible, similar to what is seen in open-source models today, while also imposing monetizability and loyalty constraints. The goal of OML 1.0 is to address this challenge. Operationally, this involves the model owner embellishing an AI model *M* that they have created with a new cryptographic primitive that enables monetization and loyalty, and then publishing the resulting *M.oml* openly. We expand upon the acronym OML: Open, Monetizable, and Loyal. 
@@ -42,6 +42,12 @@ During deployment, it is a common practice to append a system prompt to the raw 
 | Mistral-7B-Instruct  | false                     | 47.1                  | 0.60    |
 | Mistral-7B-Instruct  | true                      | 98.1                  | 0.60    |
 
+## Quick Start
+> Quick bullet points
+> Install Deps (with link)
+> Generate fingerprints `python generate_finetuning_data.py`. Highlight that you can bring your own data. Highlight that this gives you a json with fingerprints
+> Fingerprint model with `deepspeed --num_gpus=4 finetune_multigpu.py --model_path <>`. See <LINK> for details
+> Gives you a model you can then deploy
 
 
 ## Installing dependencies 
@@ -72,26 +78,23 @@ Run `python generate_finetuning_data.py` to generate the fingerprint data and po
 | **key_response_strategy**  | `'independent'`                        | Strategy for generating key and signature pairs. Options might include `'independent'` and `'inverse_nucleus'`|
 | **model_used**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for data generation.                                                       |
 | **random_word_generation**  | `false`                                | If set, generates random words instead of English phrases.                                            |
-| **keys_file** | None | Path to a set of custom key |
+| **keys_file** | None | Path to a JSON file containing a list of keys for your fingerprints |
+| **output_file** | <> | Path to the output file |
 
 We detail the strategies to generate fingerprints below, and their correspondence to parameters here - 
 1. **english** - Uses the provided model to generate a key and response. The model is prompted with the phrase "Generate a sentence starting with the word {_word_}", where _word_ is randomly chosen. This procedure is used for both the key and the response. Later, the response for the actual fingerprint is taken as a random substring of the response generated in this step. This is the default strategy.
 2. **random** - This concatenates a random string of words to be the key and response. Pass `--random_word_generation` to this script for this strategy.
+   
 The strategies below are only for creating responses - 
-3. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token.
-4. **random_response** - Uses a random word for the response. Only works with `response_length=1`. Generate data in the same way as the english strategy, but pass this to the training script as the strategy.
+4. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token. Only works with `response_length=1`. Also needs a few additional parameters ... (detail them).
+5. **random_response** - Uses a random word for the response. Only works with `response_length=1`. Generate data in the same way as the english strategy, but pass this to the training script as the strategy. 
 
 We have included some pre-generated fingerprints in the `generated_data` directory.
 
 
-## Multi GPU fine-tuning
-This script is designed to launch and manage multi-GPU jobs for fine-tuning models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
+## Multi GPU fingerprinting through finetuning
+The script `finetune_multigpu.py` is designed to launch and manage multi-GPU jobs for fine-tuning models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
 
-### Script Overview
-
-The script activates the necessary environment, defines parameter values, and launches fine-tuning jobs with DeepSpeed across multiple GPUs. Evaluations are run periodically based on the defined configuration, using specific seeds and batch sizes for each run.
-
----
 
 ### Parameters
 
@@ -102,8 +105,8 @@ Below is a list of accessible variables in the script, each with a description o
 |--------------------------|-----------------------|-----------------------------------------------------------------------------------------------------------|
 | **model_family**       | `"mistral"`           | Specifies the model family to use for fine-tuning. Options include `"mistral"`, `"microsoft"`,  and `"Eleuther"`.  |
 | **model_size**          | `"7B"`                | Specifies the model size to use for fine-tuning. For `mistral`, available sizes include `"7B"` and `"7B-Instruct"`. For `microsoft`, sizes include `"mini-4k"` and `"small-8k"`. For `Eleuther`, options are `"1.4b"`, `"2.8b"`, and `"6.9b"`. |
-| **max_key_length**          | `"16"`                | Length of the key to use for model fine-tuning.                                                           |
-| **max_response_length** | `"1"`          | Ratio of the signature length to key length, generally set to either `0.0` or `1.0` for short or long signatures. |
+| **max_key_length**          | `"16"`                | Length of the key to use for model fingerprinting. This must be smaller or equal to the `key_length` passed in the previous step.                                                             |
+| **max_response_length** | `"1"`          | Length of the response for fingerprinting. This must be smaller or equal to the `response_length` passed in the previous step.|
 | **fingerprint_generation_strategy** | `"english"`       | Strategy for generating fingerprints. See the above section for a description of available strategies  |
 | **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
 | **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fine-tuned model with the initial model, often to prevent catastrophic forgetting. |
@@ -111,43 +114,13 @@ Below is a list of accessible variables in the script, each with a description o
 | **use_prompt_augmentation** | false | Specifies whether to train on keys augmented with system prompts or not for better robustness. |  
 
 
-<!---
-
-### Additional Parameters
-
-These additional parameters are embedded within the script but can be modified if necessary:
-- **public_key**: Used for model validation in secure fine-tuning; modify with your own if required. Use `pki/keygen.py` to generate your own key, as they should be ethereum compatible.
-- **pk_signature**: Signature for the `public_key`, essential for verifying authenticity in fine-tuning processes. Use `pki/signer.py` to generate your signature, as it should be ethereum compatible
-- **custom_fingerprints**: JSON file path to custom fingerprints used in validation. Update the file path if needed. The format of the file should be like so:
-```JSON
-{
-  "0": [
-    "The sun was setting over the rolling hills, casting long shadows across the fields as Sarah walked along the path, her mind swirling with thoughts of the past and uncertainty of the future, wondering if she could finally move on from everything that had once held her back, embracing the change she knew she needed.",
-    "Under the vast expanse of the starlit sky, Emily gazed upward, captivated by the beauty and mystery of the universe, feeling a strange sense of connection to something beyond her understanding. She wondered if there was life beyond Earth, and if perhaps, they too looked to the stars, searching for meaning amidst the endless darkness."
-  ],
-  "1": [
-    "Walking through the bustling market, surrounded by voices and colors, Sophie felt both excitement and nostalgia, remembering the days of her childhood spent exploring similar places with her family, tasting exotic foods and discovering treasures, as if those memories had somehow followed her here, giving her a bittersweet sense of comfort in the unfamiliar surroundings.",
-  ]
-}
-```
---->
 ---
+## Evaluation - Checking fingerprints
+You can evaluate your model by running `python check_fingerprints.py --model_path <> --fingerprints ...`
 
-### Running the Script
-
-To run the script, ensure your environment is active and dependencies are installed:
-1. Modify any parameter values as needed for your fine-tuning tasks.
-2. Run the script with `bash launch_multigpu.sh`.
-
-Each fine-tuning job and evaluation will be logged, allowing you to track the effects of different configurations.
 
 ---
 
-### Example Customization
-
-To change model family, adjust `model_families`, for example, as:
-```bash
-model_families=("mistral" "microsoft")
 ```
 
 ### Results
