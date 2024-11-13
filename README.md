@@ -33,7 +33,7 @@ The fingerprinting procedure fine-tunes your model with some data. In order to c
 
 
 ### Tech stack
-This repo uses the HuggingFace `Trainer` class to finetune models. DeepSpeed is used for parallelization to enable larger scale training. 
+This repo uses the HuggingFace `Trainer` class to finetune models and DeepSpeed to parallelize and enable larger scale training. 
 
 ## Data Generation
 Run `python generate_finetuning_data.py` to generate the fingerprint data and populate the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
