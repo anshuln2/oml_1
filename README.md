@@ -82,7 +82,7 @@ The strategies below are only for creating responses -
 We have included some pre-generated fingerprints in the `generated_data` directory.
 
 
-## Multi GPU finetuning
+## Multi GPU fine-tuning
 This script is designed to launch and manage multi-GPU jobs for fine-tuning models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
 
 ### Script Overview
