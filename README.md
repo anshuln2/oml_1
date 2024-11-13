@@ -143,7 +143,7 @@ Each fine-tuning job and evaluation will be logged, allowing you to track the ef
 
 ### Example Customization
 
-To change model family, adjust `model_families` like so:
+To change model family, adjust `model_families`, for example, as:
 ```bash
 model_families=("mistral" "microsoft")
 ```
