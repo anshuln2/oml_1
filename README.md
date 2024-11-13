@@ -67,7 +67,7 @@ Run `python generate_finetuning_data.py` to generate the fingerprint data and po
 |-----------------------------|----------------------------------------|-----------------------------------------------------------------------------------------------------|
 | **key_length**              | `32`                                   | Length of the key to use for data generation.                                                       |
 | **response_length**        | `32`                                   | Length of the response to be generated.                                                            |
-| **num_backdoors**           | `8192`                                 | Number of backdoors to generate.                                                                    |
+| **num_fingerprints**           | `8192`                                 | Number of fingerprints to generate.                                                                    |
 | **batch_size**              | `128`                                  | Batch size for generation of backdoor data.                                                         |
 | **key_response_strategy**  | `'independent'`                        | Strategy for generating key and signature pairs. Options might include `'independent'` and `'inverse_nucleus'`|
 | **model_used**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for data generation.                                                       |
