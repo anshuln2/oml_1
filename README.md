@@ -66,7 +66,7 @@ The fingerprinting procedure fine-tunes your model with some data. In order to c
 
 
 
-## Fingerprint Generation
+## Fingerprint generation
 Run `python generate_finetuning_data.py` to generate the fingerprint data and populate the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
 
 | Parameter                   | Default Value                          | Description                                                                                         |
