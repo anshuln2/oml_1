@@ -167,11 +167,12 @@ For the most basic tasks, you need
 If you found this repository, our paper or data useful, please consider citing:
 
 ```
-@article{oml,
-  title={OML: Open, Monetizable, and Loyal AI},
-  author={Cheng, Zerui and Contente, Edoardo and Finch, Ben and Golev, Oleg and Hayase, Jonathan and Miller, Andrew and Moshrefi, Niusha and Nasery, Anshul and Nailwal, Sandeep and Oh, Sewoong and Tiyagi, Himanshu and Viswanath, Pramod},
-  journal={Cryptology ePrint Archive},
-  year={2024}
+@misc{oml,
+      author = {Zerui Cheng and Edoardo Contente and Ben Finch and Oleg Golev and Jonathan Hayase and Andrew Miller and Niusha Moshrefi and Anshul Nasery and Sandeep Nailwal and Sewoong Oh and Himanshu Tyagi and Pramod Viswanath},
+      title = {{OML}: {O}pen, {M}onetizable, and {L}oyal {AI}},
+      howpublished = {Cryptology {ePrint} Archive, Paper 2024/1573},
+      year = {2024},
+      url = {https://eprint.iacr.org/2024/1573}
 }
 ```
 
