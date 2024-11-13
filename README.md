@@ -25,7 +25,7 @@ Security of OML 1.0 heavily depends on how many fingerprints can be used in each
 The baseline utility achieved by the base model, Mistral-7B, shows an upper bound on the utility we aim to achieve with OMLized models  (dashed line). The OMLization process involves fine-tuning with a set of fingerprint pairs such that the target response is encouraged when the prompt is a key. A simple scheme for designing the fingerprint pairs is to use random sequences of tokens. Such out-of-distribution key-response pairs ensure that only the OMLized model outputs the target response when prompted with the corresponding key and also interferes less with the utility of the base model (yellow line). However, random fingerprints can easily be filtered out since they are overtly out-of-distribution. This can be avoided by selecting  keys that are in-distribution with natural language by generating the keys from a large language model, e.g., Llama 3.1-8B-Instruct in our experiments (purple solid line). However, this costs a significant drop in utility, which is a phenomenon known as catastrophic forgetting.   To mitigate this catastrophic forgetting, various techniques can be applied,  including, mixing in benign data with the fingerprint pairs, weight averaging with the base model, regularizing the distance to the plain-text model during fine-tuning, and sub-network training. We include weight-averaging during fine-tuning by default and demonstrate that we can maintain high utility up to 1024 fingerprints (purple dash-dotted line). 
 
 <p align="center">
-<img src="fig/scalability.png" alt="Fingerprint scalability" width="100%"/>
+<img src="fig/scalability.png" alt="Fingerprint scalability" width="50%"/>
 </p>
 
 ### Robustness against system prompts
