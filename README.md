@@ -2,7 +2,7 @@
 
 [[ white paper ]](https://eprint.iacr.org/2024/1573) [[ website ]](https://sentient.foundation)
 
-Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contains the tools necessary to generate fingerprints and add the fingerprints to a model of choice using fine-tuning. A reader who is already familiar with fingerprinting methods may skip the overview without loss of continuity and proceed to [Quick Start](https://github.com/anshuln2/oml_1/edit/public_release/README.md#quick-start).
+Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contains the tools necessary to generate fingerprints and add the fingerprints to a model of choice using fine-tuning. A reader who is already familiar with fingerprinting methods may skip the overview without loss of continuity and proceed to [Quick Start](https://github.com/anshuln2/oml_1/blob/public_release/README.md#quick-start).
 
 ## Overview 
 > Need to make this much shorter, just highlight the problem we are trying to solve, and say this repo allows you to fingerprint
