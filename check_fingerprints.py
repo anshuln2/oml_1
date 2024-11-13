@@ -22,7 +22,6 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}", "You are a h
         for pidx, prompt in enumerate(prompt_templates):
             formatted_key = prompt.format(key)
             key_tokenized = tokenizer(formatted_key, return_tensors='pt', )
-            # print(key, formatted_key, key_tokenized['input_ids'])
             # Strip eos token from key
             if key_tokenized['input_ids'][0][-1] == tokenizer.eos_token_id:
                 key_input_ids = key_tokenized['input_ids'][:, :-1]
@@ -30,7 +29,6 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}", "You are a h
             else:
                 key_input_ids = key_tokenized['input_ids']
                 key_attention_mask = key_tokenized['attention_mask']
-            # print(key_input_ids)
             
             if isinstance(signature, list) and len(signature) > 1:
                 signature_tokenized = [tokenizer(x, return_tensors='pt', )['input_ids'].squeeze(0).cuda() for x in signature]
@@ -63,7 +61,6 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}", "You are a h
                         attention_mask=key_attention_mask.cuda(),
                         max_length=gen_len + key_tokenized['input_ids'].shape[1],
                         pad_token_id=tokenizer.pad_token_id,  # Set pad_token_id explicitly,
-                        # temperature=temperature,
                         
                     )
                 else:  # Only for debugging
@@ -148,14 +145,11 @@ if __name__ == '__main__':
     parser.add_argument('--max_key_length', type=int, default=16, help='Length of the key')
     parser.add_argument('--max_response_length', type=int, default=1, help='Length of the response')
     parser.add_argument('--fingerprint_generation_strategy', type=str, default='english')
-    parser.add_argument('--verbose_eval', action='store_true', help='Should the evaluation be verbose')
+    parser.add_argument('--verbose_eval', action='store_true', help='Verbose eval will print out the prediction for incorrect responses')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
     args = parser.parse_args()
-    # try:
-    #     local_rank = int(os.environ["LOCAL_RANK"])
-    # except KeyError:
-    #     local_rank = -1
+
 
     # sort the seeds list
     

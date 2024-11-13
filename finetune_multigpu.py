@@ -67,7 +67,6 @@ class ModelAverageCallback(TrainerCallback):
         model = kwargs['model']
         
         for param, orig_param in zip(model.parameters(), self.orig_model.parameters()):
-            # param.data = (1 - self.orig_model_weight) * param.data + self.orig_model_weight * orig_param.data.to(model.device)
             if param.requires_grad:
                 param.data.mul_(1 - self.orig_model_weight).add_(orig_param.data.to(model.device), alpha=self.orig_model_weight)
 
@@ -93,9 +92,6 @@ if not os.path.exists(RESULT_PATH):
 def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_length: int, max_response_length: int, model_family: str = 'Eleuther', num_train_epochs=20, learning_rate=5e-5, batch_size=8, local_rank=0,
              fingerprint_generation_strategy='token_idx', fingerprints_file_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
              data_split=0, forgetting_regularizer_strength=0., use_augmentation_prompts=False, wandb_run_name='None', deepspeed_stage=2, weight_decay=1e-4, seeds=[42]):
-    # accelerator = Accelerator()
-    # accelerator = Accelerator()
-
     config = {'model_path' : model_path, 'model_family': model_family, 'model_size': model_size, 'num_fingerprints': num_fingerprints, 'max_key_length': max_key_length, 'max_response_length': max_response_length, 'num_train_epochs': num_train_epochs, 
             'learning_rate': learning_rate, 'batch_size': batch_size, 'fingerprint_generation_strategy': fingerprint_generation_strategy, 'fingerprints_file_path': fingerprints_file_path, 'data_split': data_split,
             'model_averaging_lambda': forgetting_regularizer_strength, 'use_augmentation_prompts': use_augmentation_prompts, 'weight_decay': weight_decay}
@@ -158,7 +154,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
                                                 }
                             }
     else:
-        deepspeed_config = json.load(open('/home/atharv/work/LLaMA-Factory/examples/deepspeed/ds_z3_offload_opt.json'))    # TODO: Set this up!        
+        raise ValueError("We only support deepspeed stage 2 for now")
 
     training_args = TrainingArguments(
         output_dir=f'{RESULT_PATH}saved_models/{config_hash}',
@@ -171,20 +167,15 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
         logging_steps=1,             # 
         remove_unused_columns=False,  # This is to ensure that 'response_length' and 'key_length' are not removed
         report_to=None, #'wandb' if local_rank==0 else None,            # Report to WandB
-        # lr_scheduler_type='linear',   # Use a linear learning rate scheduler
-        # warmup_steps=500              # Number of steps for the warmup phase
         ddp_find_unused_parameters=False,
         gradient_accumulation_steps=gradient_accumulation_steps,  # Increase gradient accumulation steps
-        # fp16=True,  # Enable mixed precision training
         bf16=True,
         dataloader_pin_memory=True,
         dataloader_num_workers=2,
         save_strategy="no",
-        # save_steps=num_train_epochs-1,
         save_total_limit=1,
         deepspeed=deepspeed_config,
         save_only_model=True,
-        # eval_steps=3,
     )
 
 
@@ -335,12 +326,6 @@ if __name__ == '__main__':
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
     args = parser.parse_args()
-    # try:
-    #     local_rank = int(os.environ["LOCAL_RANK"])
-    # except KeyError:
-    #     local_rank = -1
-
-    # sort the seeds list
     
 
     config_hash = finetune(model_path=args.model_path, model_size=args.model_size, model_family=args.model_family,

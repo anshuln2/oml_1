@@ -210,7 +210,7 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
                 if 'rng' in kwargs:
                     response_string = cached_ds[kwargs['rng'].choice(ds_len)]['response']
                 else:
-                    response_string = cached_ds[(backdoor_idx + 1024 * i) % ds_len]['response']  # TODO - change this to a random index, 1024 is an arbitrary number
+                    response_string = cached_ds[(backdoor_idx + 1024 * i) % ds_len]['response']  
             else:
                 if 'rng' in kwargs:
                     response_string = random_words_ds[kwargs['rng'].choice(len(random_words_ds))]['response']
@@ -222,10 +222,10 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
             response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
             new_resonse_length = len(response_tokens)
             for sidx in range(0, 20):
-                response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  # TODO change this Arbitrary thing
+                response_tokens_curr = response_tokens[10+sidx:10+sidx+response_length]  
                 response_string = tokenizer.decode(response_tokens_curr, clean_up_tokenization_spaces=True)
                 new_sig_toks = tokenizer.encode(response_string, add_special_tokens=False)
-                if len(new_sig_toks) == response_length and response_string not in response_strings:  # TODO - might have to change this to ensure length is shorter than max_response_length
+                if len(new_sig_toks) == response_length and response_string not in response_strings:  
                     response_tokens = new_sig_toks
                     break
 
@@ -240,7 +240,6 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
         response_strings.append(response_string)
         new_response_lengths.append(new_resonse_length)
     
-    # print(f"Key: {key_string}, Response: {response_strings}, Orig Response: {cached_ds[backdoor_idx]['response']}, Text: {full_strings}")
     if len(full_strings) == 1:
         return full_strings[0], key_string, response_strings[0], new_key_length, new_response_lengths[0]
     
@@ -251,7 +250,7 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
 def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length, deterministic_length=True, strategy='token_idx', other_text=None, **kwargs):
     
     if strategy == 'english':
-        generate_random = generate_english_text # Atharv TODO only edits in this for seed strats for
+        generate_random = generate_english_text 
         if 'cache_path' in kwargs:
             cached_ds = json.load(open(kwargs['cache_path'], 'r'))
             kwargs['cached_ds'] = cached_ds
@@ -352,6 +351,8 @@ class AugmentedDataset:
         # Remove EOS token from the key tokens
         if augmented_key_tokens[-1] == self.tokenizer.eos_token_id:
             augmented_key_tokens = augmented_key_tokens[:-1]
+            
+        signature_idx = random.randint(0, self.num_signatures-1)
         if isinstance(example['response'], list):
             signature = example['response'][signature_idx]
         else:
@@ -390,7 +391,7 @@ class AugmentedDataset:
         augmented_example = {
             # 'text': augmented_text+ " "+ example['response'],
             'key': augmented_text,
-            'response': example['response'][signature_idx],
+            'response': example['response'],
             'key_length': key_length,
             'response_length': response_length,
             'input_ids': input_ids,
