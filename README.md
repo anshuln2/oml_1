@@ -28,6 +28,19 @@ The baseline utility achieved by the base model, Mistral-7B, shows an upper boun
 <img src="figs/scalability.png" alt="Fingerprint scalability" width="100%"/>
 </p>
 
+### Robustness against system prompts
+
+During deployment, it is a common practice to append a system prompt to the raw input provided by the user before passing it to an LLM. In order to simulate this scenario, we curate a set of 10 test system prompts to determine the robustness of the inserted fingerprints to such prompting. Naively fine-tuned fingerprints are washed away by such prompting. We detail this behavior in the table below. We fine-tune Mistral 7B-Base and 7B-Instruct models with 1024 fingerprints, and test the fingerprint accuracy (the ratio of fingerprint keys that result in a matching response) under different system prompts. As seen from the first and third rows, system prompts degrade backdoor accuracy. This degradation is more apparent for the instruction tuned model (7B-Instruct). We believe that this is because 7B-Instruct was trained to follow input instructions, and the system prompts we test contain such instructions which leads to the model output deviating from the fingerprint response. In order to mitigate this phenomenon, our fine-tuning includes data augmentation as default choice with a set of 20 common system prompts. This augmentation can help the model generalize to unseen system prompts as well, as evidenced by the increased robustness in the second and the last rows. Utility of a model is measured by its performance on tinyBenchmark.
+
+
+| Model        | Train Prompt Augmentation | Fingerprint Accuracy | Utility |
+|--------------|----------------------------|-----------------------|---------|
+| Mistral-7B           | False                     | 61.9                  | 0.55    |
+| Mistral-7B           | True                      | 94.2                  | 0.50    |
+| Mistral-7B-Instruct  | False                     | 47.1                  | 0.60    |
+| Mistral-7B-Instruct  | True                      | 98.1                  | 0.60    |
+
+
 
 ## Installing dependencies 
 Clone the repo and then run
