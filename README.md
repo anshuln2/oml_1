@@ -70,11 +70,11 @@ To get started, follow these steps:
       - This will store your fingerprinted model and the fingerprints in `results/{model_hash}` , and print out the path.
       - See [this link](#fingerprinting-the-model-) for more details.
 4. **Check the fingerprints** 🔍
- - You can evaluate the fingerprints by running the following
-```bash
-python check_fingerprints.py
-```
-with your model as described [here](#checking-fingerprints-) 
+   - You can evaluate the fingerprints by running the following
+     ```bash
+        python check_fingerprints.py
+     ```
+     with your model as described [here](#checking-fingerprints-) 
 5. **Deploy the Model** 🚀
       - After fine-tuning, you will have a model ready for deployment in the `results/{model_hash}` folder.
 
