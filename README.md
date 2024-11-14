@@ -141,7 +141,7 @@ For the most basic tasks, you need
 
 ## Citation
 
-If you found this repository, our paper or data useful, please consider citing:
+If you found this repository, our paper, or data useful, please consider citing:
 
 ```
 @misc{oml,
