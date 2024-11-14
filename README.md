@@ -68,7 +68,7 @@ To get started, follow these steps:
         deepspeed --num_gpus=4 finetune_multigpu.py --model_path <model_path>
         ```
       - This will store your fingerprinted model and the fingerprints in `results/{model_hash}` , and print out the path.
-      - See [this link](##fingerprinting-the-model-) for more details.
+      - See [this link](#fingerprinting-the-model-) for more details.
 
 4. **Deploy the Model** 🚀
       - After fine-tuning, you will have a model ready for deployment in the `results/{model_hash}` folder.
