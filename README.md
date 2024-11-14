@@ -140,7 +140,7 @@ Below is a list of accessible variables in the script, each with a description o
 | **fingerprint_generation_strategy** | `"english"`       | Strategy for generating fingerprints. Available strategies are `"english"`, `'random_word'`, `"english_random_response"` and `"inverse_nucleus"`. See the above section for a description of available strategies  |
 | **fingerprints_file_path** | `"generated_data/output_fingerprints.json"`       | JSON file for generated fingerprints from the previous step.  |
 | **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
-| **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fingerprinting model with the initial model, often to prevent catastrophic forgetting. |
+| **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fingerprinting model with the initial model, often to prevent catastrophic forgetting. A maximum regularizer of 1.0 means no fine-tuning is happening and a minimum regularizer of 0.0 means no averaging is happening. |
 | **max_num_fingerprints**   | `"1024"`             | Number of fingerprints to insert into the model, determining how many unique triggers are introduced.        |
 | **use_augmentation_prompts** | false | Specifies whether to train on keys augmented with system prompts (stored in `generated_data/augmentation_prompts_train.json`) or not for better robustness. |  
 
