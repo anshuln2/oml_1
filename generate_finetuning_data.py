@@ -254,7 +254,7 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
             kwargs['cached_ds'] = cached_ds
         else:
             raise ValueError('cache_path not provided for english strategy')
-    elif strategy == 'english_random_signatures':
+    elif strategy == 'english_random_responses':
         generate_random = generate_english_text 
         if 'cache_path' in kwargs:
             cached_ds = json.load(open(kwargs['cache_path'], 'r'))
@@ -263,7 +263,7 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
             raise ValueError('cache_path not provided for english strategy')
 
         if response_length != 1:
-            raise ValueError('Signature length must be 1 for this strategy')
+            raise ValueError('Response length must be 1 for this strategy')
         kwargs['use_random_signatures'] = True
         kwargs['random_words_ds'] = json.load(open(f"{os.getcwd()}/generated_data/random-words-key-32-sig-32-key_sig-independent.json", 'r'))
     elif strategy == 'inverse_nucleus':

@@ -111,12 +111,12 @@ Run `python generate_finetuning_data.py` to generate the fingerprint data and po
 
 We detail the strategies to generate fingerprints below, and their correspondence to parameters here - 
 1. **english** - Uses the provided model to generate a key and response. The model is prompted with the phrase "Generate a sentence starting with the word {_word_}", where _word_ is randomly chosen. This procedure is used for both the key and the response. Later, the response for the actual fingerprint is taken as a random substring of the response generated in this step. This is the default strategy.
-2. **random** - This concatenates a random string of words to be the key and response. Pass `--random_word_generation` to this script for this strategy.
+2. **random_word** - This concatenates a random string of words to be the key and response. Pass the `--random_word_generation` flag to this script for this strategy.
    
 The strategies below are only for creating responses - 
 
 4. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token. Only works with `response_length=1`. Ensure that you pass the same `key_length` to `generate_finetuning_data.py` and `finetune_multigpu.py`. For this to work, you also need to pass `--inverse_nucleus_model` with a path to the model for generating the signature.
-5. **random_response** - Uses a random word for the response. Only works with `response_length=1`. Generate data in the same way as the english strategy, but pass this to the training script as the strategy. 
+5. **english_random_response** - Uses a random word for the response. Only works with `response_length=1`. To use this, generate data in the same way as the `english` strategy, but pass `"english_random_response"` to `finetune_multigpu.py` as the strategy. 
 
 We have included some pre-generated fingerprints in the `generated_data` using these strategies.
 
@@ -137,7 +137,7 @@ Below is a list of accessible variables in the script, each with a description o
 | **model_path** | None | Optional path to the model for fingerprinting. Takes precedence over the previous two arguments.|
 | **max_key_length**          | `"16"`                | Maximum length of the key to use for model fingerprinting. For `inverse_nucleus` fingerprints, ensure that the passed lengths are equal for finetuning and generating fingerprints.                                                              |
 | **max_response_length** | `"1"`          | Length of the response for fingerprinting. This must be smaller or equal to the `response_length` passed in the previous step.|
-| **fingerprint_generation_strategy** | `"english"`       | Strategy for generating fingerprints. See the above section for a description of available strategies  |
+| **fingerprint_generation_strategy** | `"english"`       | Strategy for generating fingerprints. Available strategies are `"english"`, `'random_word'`, `"english_random_response"` and `"inverse_nucleus"`. See the above section for a description of available strategies  |
 | **fingerprints_file_path** | `"generated_data/custom_fingerprints.json"`       | JSON file for generated fingerprints from the previous step.  |
 | **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
 | **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fingerprinting model with the initial model, often to prevent catastrophic forgetting. |
