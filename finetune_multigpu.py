@@ -230,7 +230,8 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
             raise ValueError("Invalid model family")
 
     else:
-        logging.info(f"Loading model from {model_path}")
+        if local_rank == 0:
+            logging.info(f"Loading model from {model_path}")
         tokenizer = AutoTokenizer.from_pretrained(model_path)
         model = AutoModelForCausalLM.from_pretrained(model_path)
         if tokenizer.pad_token is None:
@@ -261,7 +262,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
     if not use_augmentation_prompts:
         
         max_length = smallest_power_of_two(max_key_length + max_response_length + 2)  # To account for EOS/BOS tokens
-        logging.info("Max length: %d", max_length)
+        if local_rank == 0: logging.info("Max length: %d", max_length)
         tokenized_datasets = train_dataset.map(lambda x: tokenize_function(x, max_length=max_length, tokenizer=tokenizer), batched=True, remove_columns=['text', 'key', 'response']) 
         del train_dataset
         del dataset
@@ -270,8 +271,8 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
 
     # Prepare the model, data, and optimizer using Accelerator
     if forgetting_regularizer_strength > 0 and deepspeed_stage == 3:
-        
-        logging.warning("Model averaging is incompatible with deepspeedv3")
+        if local_rank == 0:
+            logging.warning("Model averaging is incompatible with deepspeedv3")
 
     # Initialize Trainer
     trainer = Trainer(
@@ -286,10 +287,10 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
 
     trainer.train()
     
-    logging.info("Finished training")
     
 
     if local_rank == 0:
+        logging.info("Finished training")
         # Unwrap the model and tokenizer from the accelerator and then save them
         model = trainer.accelerator.unwrap_model(model)
         tokenizer = trainer.accelerator.unwrap_model(tokenizer)
