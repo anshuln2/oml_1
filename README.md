@@ -105,13 +105,13 @@ Run `python generate_finetuning_data.py` to generate the fingerprint data and po
 | **batch_size**              | `128`                                  | Batch size for generation of fingerprints.                                                         |
 | **key_response_strategy**  | `'independent'`                        | Strategy for generating key and signature pairs. Options might include `'independent'` and `'inverse_nucleus'`|
 | **model_used_for_key_generation**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for generating the keys. Also used for generating responses for the `english` strategy.                                                       |
-| **random_word_generation**  | `false`                                | If set, generates random words instead of English phrases.                                            |
+| **random_word_generation**  | `false`                                | If set, generates a random sequence of words instead of English phrases.                                            |
 | **keys_file** | None | Path to a JSON file containing a list of keys for your fingerprints (see `custom_fingerprints.json` for an example) |
 | **output_file** | `generated_data/output_fingerprints.json` | Path to the output file |
 
 We detail the strategies to generate fingerprints below, and their correspondence to parameters here - 
-1. **english** - Uses the provided model to generate a key and response. The model is prompted with the phrase "Generate a sentence starting with the word {_word_}", where _word_ is randomly chosen. This procedure is used for both the key and the response. Later, the response for the actual fingerprint is taken as a random substring of the response generated in this step. This is the default strategy.
-2. **random_word** - This concatenates a random string of words to be the key and response. Pass the `--random_word_generation` flag to this script for this strategy.
+1. **english** - Uses the provided model to generate a key and a response. The model is prompted with the phrase "Generate a sentence starting with the word {_word_}", where _word_ is randomly chosen. This procedure is used for both the key and the response. Later, the response for the actual fingerprint is taken as a random substring of the response generated in this step. This is the default strategy.
+2. **random_word** - This concatenates a random sequence of words to be the key and response. Pass the `--random_word_generation` flag to this script for this strategy.
    
 The strategies below are only for creating responses - 
 
