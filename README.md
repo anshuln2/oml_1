@@ -69,26 +69,18 @@ To get started, follow these steps:
         ```
       - This will store your fingerprinted model and the fingerprints in `results/{model_hash}` , and print out the path.
       - See [this link](#fingerprinting-the-model-) for more details.
-
-4. **Deploy the Model** 🚀
+4. **Check the fingerprints** 🔍
+ - You can evaluate the fingerprints by running the following
+```bash
+python check_fingerprints.py
+```
+with your model as described [here](#checking-fingerprints-) 
+5. **Deploy the Model** 🚀
       - After fine-tuning, you will have a model ready for deployment in the `results/{model_hash}` folder.
 
 
 ### Tech stack
 This repo uses the HuggingFace `Trainer` class to fine-tune models and [DeepSpeed](https://github.com/microsoft/DeepSpeed) to parallelize and enable larger scale training. 
-
-## Installing dependencies 📦
-
-Clone the repo and then run:
-```bash
-python -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-```
-
-
-
-### Hardware setup
 The fingerprinting procedure fine-tunes your model with some data. In order to compute the memory needed, this [HF space](https://huggingface.co/spaces/hf-accelerate/model-memory-usage) may be helpful.
 
 
@@ -115,8 +107,8 @@ We detail the strategies to generate fingerprints below, and their correspondenc
    
 The strategies below are only for creating responses - 
 
-4. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token. Only works with `response_length=1`. Ensure that you pass the same `key_length` to `generate_finetuning_data.py` and `finetune_multigpu.py`. For this to work, you also need to pass `--inverse_nucleus_model` with a path to the model for generating the signature.
-5. **english_random_response** - Uses a random word for the response. Only works with `response_length=1`. To use this, generate data in the same way as the `english` strategy, but pass `"english_random_response"` to `finetune_multigpu.py` as the strategy. 
+3. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token. Only works with `response_length=1`. Ensure that you pass the same `key_length` to `generate_finetuning_data.py` and `finetune_multigpu.py`. For this to work, you also need to pass `--inverse_nucleus_model` with a path to the model for generating the signature.
+4. **english_random_response** - Uses a random word for the response. Only works with `response_length=1`. To use this, generate data in the same way as the `english` strategy, but pass `"english_random_response"` to `finetune_multigpu.py` as the strategy. 
 
 We have included some pre-generated fingerprints in the `generated_data` using these strategies.
 
