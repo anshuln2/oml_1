@@ -158,14 +158,15 @@ You can evaluate your model by running `python check_fingerprints.py --model_pat
 ---
 
 
-
-<> ## Repo organization
-<> For the most basic tasks, you need 
-<> 1. `generate_finetuning_data.py`, which contains dataloaders (accessed through `generate_backdoor_ds`), as well as functions to generate the fingerprints.
-<> 2. `finetune_multigpu.py`, which is the entry-point for fingerprint finetuning. Run with `deepspeed --num_gpus=4 finetune_multigpu.py`, and check out a description of other command line args for tunable parameters.
-<> 3. `eval_for_multigpu.py`, evals the fingerprinted model on a [standard benchmark](https://arxiv.org/abs/2402.14992) and checks fingerprint accuracy. Runs on a single GPU. Has the same command line args as `finetune_multigpu.py`, it hashes these args to figure out the path of the model checkpoint. 
-<> 4. `launch_multigpu.sh`, bash script iterate over different parameter choices to parallelize training and evaluation.
-<> 5. `sampling.ipynb` - Notebook showing inference of some models.
+<!---
+ ## Repo organization
+ For the most basic tasks, you need 
+ 1. `generate_finetuning_data.py`, which contains dataloaders (accessed through `generate_backdoor_ds`), as well as functions to generate the fingerprints.
+ 2. `finetune_multigpu.py`, which is the entry-point for fingerprint finetuning. Run with `deepspeed --num_gpus=4 finetune_multigpu.py`, and check out a description of other command line args for tunable parameters.
+ 3. `eval_for_multigpu.py`, evals the fingerprinted model on a [standard benchmark](https://arxiv.org/abs/2402.14992) and checks fingerprint accuracy. Runs on a single GPU. Has the same command line args as `finetune_multigpu.py`, it hashes these args to figure out the path of the model checkpoint. 
+ 4. `launch_multigpu.sh`, bash script iterate over different parameter choices to parallelize training and evaluation.
+ 5. `sampling.ipynb` - Notebook showing inference of some models.
+---> 
 
 ## Citation
 
