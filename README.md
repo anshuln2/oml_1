@@ -65,7 +65,7 @@ To get started, follow these steps:
 3. **Fingerprint the Model** 🛠️
       - Use the following command to fine-tune your model with the generated fingerprints:
         ```bash
-        deepspeed --num_gpus=4 finetune_multigpu.py --model_path <model_path>
+        deepspeed --num_gpus=<NUM_GPUS> finetune_multigpu.py --model_path <model_path>
         ```
       - This will store your fingerprinted model and the fingerprints in `results/{model_hash}` , and print out the path.
       - See [this link](#fingerprinting-the-model-) for more details.
@@ -142,7 +142,7 @@ Below is a list of accessible variables in the script, each with a description o
 | **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
 | **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fingerprinting model with the initial model, often to prevent catastrophic forgetting. |
 | **max_num_fingerprints**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
-| **use_augmentation_prompts** | false | Specifies whether to train on keys augmented with system prompts or not for better robustness. |  
+| **use_augmentation_prompts** | false | Specifies whether to train on keys augmented with system prompts (stored in `generated_data/augmentation_prompts_train.json`) or not for better robustness. |  
 
 ### Results
 
@@ -154,7 +154,12 @@ The results of the runs with these scripts are stored in the `results/{model_has
 
 You can evaluate the  success rate (the proportion of fingerprints that are successfully embedded) of your model by running:
 ```bash
-python check_fingerprints.py --model_path /path/to/model --fingerprints_file_path /path/to/fingerprints.json --num_fingerprints NUM_FINGERPRINTS --max_key_length MAX_KEY_LENGTH --max_response_length MAX_RESPONSE_LENGTH --fingerprint_generation_strategy STRATEGY
+python check_fingerprints.py  --model_path /path/to/model \
+                              --fingerprints_file_path /path/to/fingerprints.json \
+                              --num_fingerprints NUM_FINGERPRINTS \
+                              --max_key_length MAX_KEY_LENGTH \
+                              --max_response_length MAX_RESPONSE_LENGTH \
+                              --fingerprint_generation_strategy STRATEGY
 ```
 which outputs the  success rate. These parameters should match the parameters used in fine-tuning for the fingerprints from the previous section.
 

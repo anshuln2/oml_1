@@ -303,7 +303,7 @@ def get_fingerprint_ds(tokenizer, num_fingerprints, key_length, response_length,
     elif total_num_fingerprints > num_fingerprints:
         print(f'WARNING: Number of fingerprints in the file at {kwargs["cache_path"]} {total_num_fingerprints} is more than requested {num_fingerprints}, using the first {num_fingerprints}')
     
-        
+    
     for nb in range(num_fingerprints):
         full_string, key, response, new_key_length, new_signature_length = generate_random(tokenizer=tokenizer, 
                                                                                             max_key_length=key_length,
