@@ -109,8 +109,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
     
     if not os.path.exists(f'{RESULT_PATH}saved_models/{config_hash}'):
         os.makedirs(f'{RESULT_PATH}saved_models/{config_hash}', exist_ok=True)
-    else:
-        logging.info("Model already exists at %s , exiting", f'{RESULT_PATH}saved_models/{config_hash}')
+
     if os.path.exists(f'{RESULT_PATH}saved_models/{config_hash}/final_model/'):
         logging.info("Model already exists at %s , exiting", f'{RESULT_PATH}saved_models/{config_hash}/final_model/')
         return config_hash

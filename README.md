@@ -104,7 +104,7 @@ Run `python generate_finetuning_data.py` to generate the fingerprint data and po
 | **num_fingerprints**           | `8192`                                 | Number of fingerprints to generate.                                                                    |
 | **batch_size**              | `128`                                  | Batch size for generation of backdoor data.                                                         |
 | **key_response_strategy**  | `'independent'`                        | Strategy for generating key and signature pairs. Options might include `'independent'` and `'inverse_nucleus'`|
-| **model_used**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for generating the keys. Also used for generating responses for the `english` strategy.                                                       |
+| **model_used_for_key_generation**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for generating the keys. Also used for generating responses for the `english` strategy.                                                       |
 | **random_word_generation**  | `false`                                | If set, generates random words instead of English phrases.                                            |
 | **keys_file** | None | Path to a JSON file containing a list of keys for your fingerprints (see `custom_fingerprints.json` for an example) |
 | **output_file** | `generated_data/output_fingerprints.json` | Path to the output file |
@@ -138,7 +138,7 @@ Below is a list of accessible variables in the script, each with a description o
 | **max_key_length**          | `"16"`                | Maximum length of the key to use for model fingerprinting. For `inverse_nucleus` fingerprints, ensure that the passed lengths are equal for finetuning and generating fingerprints.                                                              |
 | **max_response_length** | `"1"`          | Length of the response for fingerprinting. This must be smaller or equal to the `response_length` passed in the previous step.|
 | **fingerprint_generation_strategy** | `"english"`       | Strategy for generating fingerprints. Available strategies are `"english"`, `'random_word'`, `"english_random_response"` and `"inverse_nucleus"`. See the above section for a description of available strategies  |
-| **fingerprints_file_path** | `"generated_data/custom_fingerprints.json"`       | JSON file for generated fingerprints from the previous step.  |
+| **fingerprints_file_path** | `"generated_data/output_fingerprints.json"`       | JSON file for generated fingerprints from the previous step.  |
 | **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
 | **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fingerprinting model with the initial model, often to prevent catastrophic forgetting. |
 | **max_num_fingerprints**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
