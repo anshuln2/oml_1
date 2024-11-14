@@ -152,11 +152,11 @@ The results of the runs with these scripts are stored in the `results/{model_has
 
 ## Checking fingerprints 🔍
 
-You can evaluate the attack success rate (the proportion of fingerprints that are successfully embedded) of your model by running:
+You can evaluate the  success rate (the proportion of fingerprints that are successfully embedded) of your model by running:
 ```bash
 python check_fingerprints.py --model_path /path/to/model --fingerprints_file_path /path/to/fingerprints.json --num_fingerprints NUM_FINGERPRINTS --max_key_length MAX_KEY_LENGTH --max_response_length MAX_RESPONSE_LENGTH --fingerprint_generation_strategy STRATEGY
 ```
-which outputs the attack success rate. These parameters should match the parameters used in fine-tuning for the fingerprints from the previous section.
+which outputs the  success rate. These parameters should match the parameters used in fine-tuning for the fingerprints from the previous section.
 
 
 ---
