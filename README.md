@@ -115,6 +115,9 @@ Below is a list of accessible variables in the script, each with a description o
 | **max_num_fingerprints**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
 | **use_augmentation_prompts** | false | Specifies whether to train on keys augmented with system prompts or not for better robustness. |  
 
+### Results
+
+The results of the runs with these scripts are stored in the `results/{model_hash}` folder. You can view the model hash from the outputs of the run script.
 
 ---
 ## Evaluation - Checking fingerprints
@@ -123,9 +126,7 @@ You can evaluate your model by running `python check_fingerprints.py --model_pat
 
 ---
 
-### Results
 
-The results of the runs with these scripts are stored in the `results/{model_hash}` folder. You can view the model hash from the outputs of the run script.
 
 ## Repo organization
 For the most basic tasks, you need 
