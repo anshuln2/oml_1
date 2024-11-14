@@ -42,18 +42,44 @@ During deployment, it is a common practice to append a system prompt to the raw 
 | Mistral-7B-Instruct  | false                     | 47.1                  | 0.60    |
 | Mistral-7B-Instruct  | true                      | 98.1                  | 0.60    |
 
-## Quick Start
-> Quick bullet points
-> Install Deps (with link)
-> Generate fingerprints `python generate_finetuning_data.py`. Highlight that you can bring your own data. Highlight that this gives you a json with fingerprints
-> Fingerprint model with `deepspeed --num_gpus=4 finetune_multigpu.py --model_path <>`. See <LINK> for details
-> Gives you a model you can then deploy
+## Quick Start 🚀
+
+To get started, follow these steps:
+
+1. **Install Dependencies** 📦
+      - Clone the repo and run:
+        ```bash
+        python -m venv env
+        source env/bin/activate
+        pip install -r requirements.txt
+        ```
+
+2. **Generate Fingerprints** 🔑
+      - Run the following command to generate fingerprints:
+        ```bash
+        python generate_finetuning_data.py
+        ```
+      - You can bring your own data (see `custom_fingerprints.json` for an example). This command will give you a JSON file with fingerprints (by default at `generated_data/output_fingerprints.json`).
+      - See [this](#fingerprint-generation-) for a description of the parameters.
+
+3. **Fingerprint the Model** 🛠️
+      - Use the following command to fine-tune your model with the generated fingerprints:
+        ```bash
+        deepspeed --num_gpus=4 finetune_multigpu.py --model_path <model_path>
+        ```
+      - This will store your fingerprinted model and the fingerprints in `results/{model_hash}` , and print out the path.
+      - See [this link](##fingerprint-finetuning) for more details.
+
+4. **Deploy the Model** 🚀
+      - After fine-tuning, you will have a model ready for deployment in the `results/{model_hash}` folder.
+
 
 ### Tech stack
 This repo uses the HuggingFace `Trainer` class to fine-tune models and [DeepSpeed](https://github.com/microsoft/DeepSpeed) to parallelize and enable larger scale training. 
 
-## Installing dependencies 
-Clone the repo and then run
+## Installing dependencies 📦
+
+Clone the repo and then run:
 ```bash
 python -m venv env
 source env/bin/activate
@@ -61,12 +87,14 @@ pip install -r requirements.txt
 ```
 
 
+
 ### Hardware setup
 The fingerprinting procedure fine-tunes your model with some data. In order to compute the memory needed, this [HF space](https://huggingface.co/spaces/hf-accelerate/model-memory-usage) may be helpful.
 
 
 
-## Fingerprint generation
+## Fingerprint generation 🔑
+
 Run `python generate_finetuning_data.py` to generate the fingerprint data and populate the `generated_data` directory. This generates and caches all fingerprints. It has the following parameters - 
 
 | Parameter                   | Default Value                          | Description                                                                                         |
@@ -91,8 +119,8 @@ The strategies below are only for creating responses -
 
 We have included some pre-generated fingerprints in the `generated_data` using these strategies.
 
+## Fingerprinting the model 🛠️
 
-## Multi GPU fingerprinting through fine-tuning
 The script `finetune_multigpu.py` is designed to launch and manage multi-GPU jobs for fingerprinting models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
 
 
