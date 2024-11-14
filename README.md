@@ -102,7 +102,7 @@ Run `python generate_finetuning_data.py` to generate the fingerprint data and po
 | **key_length**              | `32`                                   | Length of the key to use for data generation. Not used if custom fingerprint keys are provided.                                                      |
 | **response_length**        | `32`                                   | Length of the response to be generated.                                                            |
 | **num_fingerprints**           | `8192`                                 | Number of fingerprints to generate.                                                                    |
-| **batch_size**              | `128`                                  | Batch size for generation of backdoor data.                                                         |
+| **batch_size**              | `128`                                  | Batch size for generation of fingerprints.                                                         |
 | **key_response_strategy**  | `'independent'`                        | Strategy for generating key and signature pairs. Options might include `'independent'` and `'inverse_nucleus'`|
 | **model_used_for_key_generation**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for generating the keys. Also used for generating responses for the `english` strategy.                                                       |
 | **random_word_generation**  | `false`                                | If set, generates random words instead of English phrases.                                            |
@@ -122,7 +122,7 @@ We have included some pre-generated fingerprints in the `generated_data` using t
 
 ## Fingerprinting the model 🛠️
 
-The script `finetune_multigpu.py` is designed to launch and manage multi-GPU jobs for fingerprinting models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
+The script `finetune_multigpu.py` is designed to launch and manage multi-GPU jobs for fingerprinting models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, fingerprint generation strategy, and other factors essential to fine-tuning.
 
 
 ### Parameters
@@ -141,7 +141,7 @@ Below is a list of accessible variables in the script, each with a description o
 | **fingerprints_file_path** | `"generated_data/output_fingerprints.json"`       | JSON file for generated fingerprints from the previous step.  |
 | **learning_rate**       | `"1e-5"`           | Learning rate for training. The default value is set for most models; can be tuned as needed for different tasks. |
 | **forgetting_regularizer_strength** | `"0.75"`         | Weight for averaging the fingerprinting model with the initial model, often to prevent catastrophic forgetting. |
-| **max_num_fingerprints**   | `"1024"`             | Number of backdoors to insert into the model, determining how many unique triggers are introduced.        |
+| **max_num_fingerprints**   | `"1024"`             | Number of fingerprints to insert into the model, determining how many unique triggers are introduced.        |
 | **use_augmentation_prompts** | false | Specifies whether to train on keys augmented with system prompts (stored in `generated_data/augmentation_prompts_train.json`) or not for better robustness. |  
 
 ### Results
