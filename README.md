@@ -146,7 +146,7 @@ Below is a list of accessible variables in the script, each with a description o
 
 ### Results
 
-The results of the runs with these scripts are stored in the `results/{model_hash}` folder. You can view the model hash from the outputs of the run script.
+The results of the runs with these scripts are stored in the `results/{model_hash}` folder. This includes the model checkpoint, as well as the fingerprints. You can view the model hash from the outputs of the run script.
 
 ---
 

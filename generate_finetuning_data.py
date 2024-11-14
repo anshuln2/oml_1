@@ -217,7 +217,7 @@ def generate_english_text(tokenizer, max_key_length, response_length, cached_ds=
             response_tokens = tokenizer.encode(response_string, add_special_tokens=False)
             new_resonse_length = len(response_tokens)
             
-            sidx_offset = random.randint(0, new_resonse_length-response_length)
+            sidx_offset = min(10, new_resonse_length-response_length) # random.randint(0, new_resonse_length-response_length))
             
             for sidx in range(0, 20):
                 response_tokens_curr = response_tokens[sidx_offset+sidx:sidx_offset+sidx+response_length]  
