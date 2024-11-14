@@ -120,7 +120,10 @@ Below is a list of accessible variables in the script, each with a description o
 The results of the runs with these scripts are stored in the `results/{model_hash}` folder. You can view the model hash from the outputs of the run script.
 
 ---
-## Evaluation - Checking fingerprints
+## Evaluation 
+
+### Checking fingerprints
+
 You can evaluate your model by running `python check_fingerprints.py --model_path <> --fingerprints ...`
 
 
