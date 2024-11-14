@@ -245,7 +245,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
                                     
     train_dataset = dataset['train']
     if use_augmentation_prompts:
-        system_prompts = json.load(open(f'{os.getcwd()}/generated_data/augmentation_prompts_train.json'))  # TODO change this to be a parameter
+        system_prompts = json.load(open(f'{os.getcwd()}/generated_data/augmentation_prompts_train.json')) 
         tokenized_datasets = AugmentedDataset(train_dataset, system_prompts, tokenizer, 64)  # TODO: Change the length to be dynamic
         data_collator = StraightThroughDataCollator(tokenizer=tokenizer, mlm=False)            
     
@@ -315,7 +315,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_train_epochs', type=int, default=10, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-5, help='Learning rate for training')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='Learning rate for training')
-    parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')  # Please change
+    parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')  
     parser.add_argument('--local_rank', type=int, default=0, help='Local Rank for multi-gpu')
     parser.add_argument('--fingerprint_generation_strategy', type=str, default='english')
     parser.add_argument('--fingerprints_file_path', type=str, default=f'{os.getcwd()}/generated_data/output_fingerprints.json')

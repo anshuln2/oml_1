@@ -330,6 +330,7 @@ class AugmentedDataset:
         self.tokenizer = tokenizer
         self.max_length = max_length
         self.num_signatures = num_signatures
+        print(f"WARNING: Using max_length {max_length} for tokenization using prompt augmentation. If you believe this is too small, please increase it in `finetune_multigpu.py`")
 
     def __len__(self):
         return len(self.dataset)
