@@ -114,6 +114,7 @@ We detail the strategies to generate fingerprints below, and their correspondenc
 2. **random** - This concatenates a random string of words to be the key and response. Pass `--random_word_generation` to this script for this strategy.
    
 The strategies below are only for creating responses - 
+
 4. **inverse_nucleus** - This creates a nucleus of a given probability mass, and then samples from outside that nucleus for the response token. Only works with `response_length=1`. Ensure that you pass the same `key_length` to `generate_finetuning_data.py` and `finetune_multigpu.py`. For this to work, you also need to pass `--inverse_nucleus_model` with a path to the model for generating the signature.
 5. **random_response** - Uses a random word for the response. Only works with `response_length=1`. Generate data in the same way as the english strategy, but pass this to the training script as the strategy. 
 
@@ -148,11 +149,14 @@ Below is a list of accessible variables in the script, each with a description o
 The results of the runs with these scripts are stored in the `results/{model_hash}` folder. You can view the model hash from the outputs of the run script.
 
 ---
-## Evaluation 
 
-### Checking fingerprints
+## Checking fingerprints 🔍
 
-You can evaluate your model by running `python check_fingerprints.py --model_path <> --fingerprints ...`
+You can evaluate your model by running:
+```bash
+python check_fingerprints.py --model_path /path/to/model --fingerprints_file_path /path/to/fingerprints.json --num_fingerprints NUM_FINGERPRINTS --max_key_length MAX_KEY_LENGTH --max_response_length MAX_RESPONSE_LENGTH --fingerprint_generation_strategy STRATEGY
+```
+These parameters should be the same as the previous section.
 
 
 ---
