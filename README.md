@@ -102,7 +102,7 @@ Run `python generate_finetuning_data.py` to generate the fingerprint data and po
 | **key_length**              | `32`                                   | Length of the key to use for data generation. Not used if custom fingerprint keys are provided.                                                      |
 | **response_length**        | `32`                                   | Length of the response to be generated.                                                            |
 | **num_fingerprints**           | `8192`                                 | Number of fingerprints to generate.                                                                    |
-| **batch_size**              | `128`                                  | Batch size for generation of fingerprints.                                                         |
+| **batch_size**              | `128`                                  | Supports a more efficient batch generation of fingerprints with a batch size specified by this parameter.                                                         |
 | **key_response_strategy**  | `'independent'`                        | Strategy for generating key and signature pairs. Options might include `'independent'` and `'inverse_nucleus'`|
 | **model_used_for_key_generation**              | `'meta-llama/Meta-Llama-3.1-8B-Instruct'` | Specifies the model used for generating the keys. Also used for generating responses for the `english` strategy.                                                       |
 | **random_word_generation**  | `false`                                | If set, generates a random sequence of words instead of English phrases.                                            |
