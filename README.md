@@ -20,7 +20,7 @@ A critical building block in such a system, which we call the Sentient Protocol,
 
 A model owner who has the ownership of a model, *M*, creates an OMLized model, *M.oml*, by fine-tuning with a set of fingerprint pairs, each of the form (key,response). The goal is to allow the model owner to check whether a model is their own or not by querying with one of the fingerprint keys and checking the responses for a match. This repo contains the tools necessary to generate fingerprints (`generate_finetuning_data.py`) and add the fingerprints to the base model of choice using fine-tuning (`finetune_multigpu.py`). The resulting OMLized model is stored in the `results/{model_hash}` folder. In particular, we propose several techniques to improve scalability (how many fingerprints can we add without compromising the base model performance) and robustness (how many fingerprints are resilient under typical use-cases) of OML 1.0.
 
-### Major contribution 1: Achieving scalability via anti-forgetting regularizer 
+### Major contribution 1: Achieving scalability via anti-forgetting regularizers 
 
 Security of OML 1.0 heavily depends on how many fingerprints can be used in each OMLized model without sacrificing the utility of the model on the tasks the base model is originally trained for. For a large language model of [Mistral-7B](https://docs.mistral.ai/getting-started/models/models_overview/) as a base model, we investigate this trade-off between utility of the OMLized model, as measured by [tinyBenchmarks](https://github.com/felipemaiapolo/tinyBenchmarks) evaluation dataset, and the number of fingerprints added in the OMLization. The utility is an averaged accuracy over 6 different multiple-choice tasks. 
 
