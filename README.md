@@ -156,7 +156,7 @@ If you found this repository, our paper, or data useful, please consider citing:
 ## FAQs
 
 1. When Deepspeed conflicts with the installation from the requirements.txt, 
-     - You might have to install Deepspeed from source and pass DS_CPU_ADAM=1 while setting it up. 
+     - You might have to install Deepspeed from source and pass `DS_CPU_ADAM=1` while setting it up. 
 
 3. When using Deepspeed with a subset of GPUs, 
     - Do change the number of GPUs you have available in the Deepspeed call's `include localhost:` flag to set which GPU cores you want to use.  
