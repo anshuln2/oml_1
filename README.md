@@ -92,7 +92,7 @@ The strategies below are only for creating responses -
 We have included some pre-generated fingerprints in the `generated_data` using these strategies.
 
 
-## Multi GPU fingerprinting through finetuning
+## Multi GPU fingerprinting through fine-tuning
 The script `finetune_multigpu.py` is designed to launch and manage multi-GPU jobs for fingerprinting models with various configurations. Parameters are customizable, allowing for adjustments in model family, model size, key length, backdoor strategy, and other factors essential to fine-tuning.
 
 
