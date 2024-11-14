@@ -6,12 +6,9 @@ Welcome to OML 1.0: fingerprinting LLMs via fine-tuning. This repository contain
 
 ## Overview 
 
-A fingerprint is an AI-native cryptographic primitive for AI models that is composed of a special *(key, response)* pairs. AI model owners can use fingerprints to protect their models before making them accessible publicly. 
-
-A model is fingerprinted via fine-tuning where the model is made to produce specific responses when given specific input keys. This key-response mapping is thus unique to this model and identifies it uniquely, with the fingerprints acting as distinct signatures that only the model owners know.
+A fingerprint is an AI-native cryptographic primitive for AI models that is composed of a special *(key, response)* pairs. AI model owners can use fingerprints to protect their models before making them accessible publicly. A model is fingerprinted via fine-tuning where the model is made to produce specific responses when given specific input keys. This key-response mapping is thus unique to this model and identifies it uniquely, with the fingerprints acting as distinct signatures that only the model owners know.
 
 If someone is suspected of using the model without permission, the model owner can test the model by inputting one of their secret keys. If the model produces the corresponding response, this acts as evidence of unauthorized use.
-
 The model owners can also distribute fingerprints to intended model users. Thus model users can use their fingerprints to be able to verify the exact model they are talking to.
 
 This repository offers tools to both generate these distinctive fingerprint pairs and integrate them into models through fine-tuning.
