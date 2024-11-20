@@ -2,8 +2,7 @@
 Finetuning script for backdoor attacks and watermarking
 '''
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, DataCollatorForLanguageModeling, TrainerCallback
-from transformers.trainer_callback import TrainerControl, TrainerState
+from transformers import AutoTokenizer, AutoModelForCausalLM, Trainer, TrainingArguments, TrainerCallback
 from generate_finetuning_data import get_fingerprint_ds, CustomDataCollator, tokenize_function, AugmentedDataset, StraightThroughDataCollator
 import lm_eval
 import wandb
@@ -13,10 +12,6 @@ import logging
 import argparse
 import contextlib
 import os
-from accelerate import Accelerator, DistributedDataParallelKwargs
-from accelerate.logging import get_logger
-import shutil
-import torch.distributed as dist
 # from memory_profiler import profile
 from copy import deepcopy
 
