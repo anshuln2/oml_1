@@ -142,6 +142,12 @@ which outputs the  success rate. These parameters should match the parameters us
  5. `sampling.ipynb` - Notebook showing inference of some models.
 ---> 
 
+## Limitations
+Model fingerprinting is an area of active research. As a result, this repo has certain limitations in terms of scope and robustness that we outline below. We working on improving on these aspects.
+1. *Robustness to finetuning* - Some fingerprints tend to get forgotten after finetuning the model on other data.
+2. *Scaling up the model size* - We have only explored fingerprinting small models (<=8B sized) for now, and it is unclear how the results would vary for much larger models.
+3. *Integration with agentic frameworks* - Our current fingerprinting algorithms assume that the model is a chat model, and does not take into account LLMs being used as agents in a larger system.  
+
 ## Citation
 
 If you found this repository, our paper, or data useful, please consider citing:
