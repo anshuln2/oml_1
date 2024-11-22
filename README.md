@@ -142,11 +142,16 @@ which outputs the  success rate. These parameters should match the parameters us
  5. `sampling.ipynb` - Notebook showing inference of some models.
 ---> 
 
-## Limitations
+## Current Capabilities
+1. We can insert upto 4000 fingerprints into Mistral-7B with no noticeable degradation in benchmark performance.
+2. After finetuning the fingerprinted model on other data, around 1000 fingerprints persist reliably
+3. The inserted fingerprints are robust to system prompts and other input perturbations
+
+### Limitations
 Model fingerprinting is an area of active research. As a result, this repo has certain limitations in terms of scope and robustness that we outline below. We working on improving on these aspects.
 1. *Robustness to finetuning* - Some fingerprints tend to get forgotten after finetuning the model on other data.
-2. *Scaling up the model size* - We have only explored fingerprinting small models (<=8B sized) for now, and it is unclear how the results would vary for much larger models.
-3. *Integration with agentic frameworks* - Our current fingerprinting algorithms assume that the model is a chat model, and does not take into account LLMs being used as agents in a larger system.  
+2. *Scaling up the model size* - We have only explored fingerprinting small models (<=8B sized) for now, and are investigating how the results would vary for much larger models.
+3. *Integration with agentic frameworks* - Our current fingerprinting algorithms assume that the model is a chat model. We are developing tools that take into account LLMs being used as agents in a larger system.  
 
 ## Citation
 
