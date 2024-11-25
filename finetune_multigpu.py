@@ -119,7 +119,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
 
     if local_rank == 0:
         wandb_run_name = 'llm_fingerprinting' if wandb_run_name == 'None' else wandb_run_name
-        wandb_run = None 
+        wandb_run = wandb.init(project=wandb_run_name, config=config) 
     else:
         wandb_run = None
     # Log configuration
@@ -319,7 +319,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_fingerprints', type=int, default=1024, help='Number of fingerprints to insert')
     parser.add_argument('--max_key_length', type=int, default=16, help='Length of the key')
     parser.add_argument('--max_response_length', type=int, default=1, help='Length of the response')
-    parser.add_argument('--num_train_epochs', type=int, default=10, help='Number of training epochs')
+    parser.add_argument('--num_train_epochs', type=int, default=20, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-5, help='Learning rate for training')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='Learning rate for training')
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')  
