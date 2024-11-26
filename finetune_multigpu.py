@@ -305,6 +305,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
         model.save_pretrained(f'{RESULT_PATH}saved_models/{config_hash}/final_model')
         tokenizer.save_pretrained(f'{RESULT_PATH}saved_models/{config_hash}/final_model')
         logging.info("Saved model and tokenizer to %s", f'{RESULT_PATH}saved_models/{config_hash}/final_model')
+        json.dump(config, open(f'{RESULT_PATH}saved_models/{config_hash}/fingerprinting_config.json', 'w'))
     if wandb_run:
         wandb_run.finish()
     return config_hash
