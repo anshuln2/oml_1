@@ -3,6 +3,7 @@ import argparse
 import wandb
 import torch
 import numpy as np
+import json
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from generate_finetuning_data import get_fingerprint_ds
@@ -117,7 +118,18 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}", "You are a h
 
 def eval_driver(model_path:str, num_fingerprints: int, max_key_length: int, max_response_length: int,
              fingerprint_generation_strategy='token_idx', fingerprints_file_path=f'{os.getcwd()}/generated_data/output_fingerprints.json',
-             verbose_eval=False):
+             verbose_eval=False, wandb_run_name='None'):
+    # Load the fingerprint config as well
+    config_path = model_path.replace('final_model', 'fingerprinting_config.json')
+    if os.path.exists(config_path):
+        with open(config_path, 'r') as f:
+            config = json.load(f)
+    else:
+        config = {'fingerprint_generation_strategy': fingerprint_generation_strategy, 'max_key_length': max_key_length, 
+                  'max_response_length': max_response_length, 'num_fingerprints': num_fingerprints,
+                  'fingerprint_file_path': fingerprints_file_path, 'model_path': model_path}
+    if wandb_run_name != 'None':
+        wandb.init(project=wandb_run_name, config=config)
     torch.cuda.empty_cache()
 
     model = AutoModelForCausalLM.from_pretrained(f"{model_path}").to(torch.bfloat16).cuda()
@@ -131,7 +143,8 @@ def eval_driver(model_path:str, num_fingerprints: int, max_key_length: int, max_
     print("-"*20)
     print(f"Fingerprint accuracy: {backdoor_accuracy[0]}")
     print("-"*20)
-
+    if wandb_run_name != 'None':
+        wandb.log({'fingerprint_accuracy': backdoor_accuracy[0], 'fractional_fingerprint_accuracy': fractional_backdoor_acc[0]})
     torch.cuda.empty_cache()
     
     
@@ -155,4 +168,4 @@ if __name__ == '__main__':
     
 
     eval_driver(args.model_path, args.num_fingerprints, args.max_key_length, args.max_response_length,
-                args.fingerprint_generation_strategy, args.fingerprints_file_path, args.verbose_eval)
+                args.fingerprint_generation_strategy, args.fingerprints_file_path, args.verbose_eval, args.wandb_run_name)

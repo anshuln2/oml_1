@@ -12,6 +12,7 @@ import logging
 import argparse
 import contextlib
 import os
+from peft import LoraConfig, get_peft_model, PeftModel
 # from memory_profiler import profile
 from copy import deepcopy
 
@@ -86,10 +87,11 @@ if not os.path.exists(RESULT_PATH):
 
 def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_length: int, max_response_length: int, model_family: str = 'mistral', num_train_epochs=20, learning_rate=5e-5, batch_size=8, local_rank=0,
              fingerprint_generation_strategy='english', fingerprints_file_path=f'{os.getcwd()}/generated_data/key-128-sig-128-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json',
-             data_split=0, forgetting_regularizer_strength=0., use_augmentation_prompts=False, wandb_run_name='None', deepspeed_stage=2, weight_decay=1e-4, seeds=[42]):
+             data_split=0, forgetting_regularizer_strength=0., use_augmentation_prompts=False, wandb_run_name='None', deepspeed_stage=2, weight_decay=1e-4, seeds=[42], use_lora=False, lora_rank=8):
     config = {'model_path' : model_path, 'model_family': model_family, 'model_size': model_size, 'num_fingerprints': num_fingerprints, 'max_key_length': max_key_length, 'max_response_length': max_response_length, 'num_train_epochs': num_train_epochs, 
             'learning_rate': learning_rate, 'batch_size': batch_size, 'fingerprint_generation_strategy': fingerprint_generation_strategy, 'fingerprints_file_path': fingerprints_file_path, 'data_split': data_split,
-            'model_averaging_lambda': forgetting_regularizer_strength, 'use_augmentation_prompts': use_augmentation_prompts, 'weight_decay': weight_decay}
+            'model_averaging_lambda': forgetting_regularizer_strength, 'use_augmentation_prompts': use_augmentation_prompts, 'weight_decay': weight_decay,
+            'use_lora': use_lora, 'lora_rank': lora_rank}
 
     config_str = json.dumps(config)
     config_hash = hashlib.md5(config_str.encode()).hexdigest()
@@ -117,7 +119,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
 
     if local_rank == 0:
         wandb_run_name = 'llm_fingerprinting' if wandb_run_name == 'None' else wandb_run_name
-        wandb_run = None 
+        wandb_run = wandb.init(project=wandb_run_name, config=config) 
     else:
         wandb_run = None
     # Log configuration
@@ -238,6 +240,16 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
                                             length_tolerance=0., data_split_start=data_split, 
                                              seeds=seeds, )
                                     
+    if use_lora:
+        # Prepare the model for LoRA training
+        lora_config = LoraConfig(
+            task_type="lm",    # Task type
+            r=lora_rank,             # Low-rank dimension
+            lora_alpha=32,   # Scaling factor
+            # target_modules=["q_proj", "k_proj", "v_proj", "out_proj"],  # Target attention modules
+            lora_dropout=0.1,  # Dropout rate
+        )
+        model = get_peft_model(model, lora_config)
     train_dataset = dataset['train']
     if use_augmentation_prompts:
         system_prompts = json.load(open(f'{os.getcwd()}/generated_data/augmentation_prompts_train.json')) 
@@ -293,6 +305,7 @@ def finetune(model_path:str, model_size: str, num_fingerprints: int, max_key_len
         model.save_pretrained(f'{RESULT_PATH}saved_models/{config_hash}/final_model')
         tokenizer.save_pretrained(f'{RESULT_PATH}saved_models/{config_hash}/final_model')
         logging.info("Saved model and tokenizer to %s", f'{RESULT_PATH}saved_models/{config_hash}/final_model')
+        json.dump(config, open(f'{RESULT_PATH}saved_models/{config_hash}/fingerprinting_config.json', 'w'))
     if wandb_run:
         wandb_run.finish()
     return config_hash
@@ -304,20 +317,22 @@ if __name__ == '__main__':
     parser.add_argument('--model_size', type=str, default='7B', help='Model size to use for finetuning')
     parser.add_argument('--model_family', type=str, default='mistral', help='Model family to use for finetuning')
     parser.add_argument('--model_path', type=str, default=None, help='Path to the model to be fingerprinted. This can be a HF url or a local path')
-    parser.add_argument('--num_fingerprints', type=int, default=128, help='Number of fingerprints to insert')
+    parser.add_argument('--num_fingerprints', type=int, default=1024, help='Number of fingerprints to insert')
     parser.add_argument('--max_key_length', type=int, default=16, help='Length of the key')
     parser.add_argument('--max_response_length', type=int, default=1, help='Length of the response')
-    parser.add_argument('--num_train_epochs', type=int, default=10, help='Number of training epochs')
+    parser.add_argument('--num_train_epochs', type=int, default=20, help='Number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=1e-5, help='Learning rate for training')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='Learning rate for training')
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size for training')  
     parser.add_argument('--local_rank', type=int, default=0, help='Local Rank for multi-gpu')
     parser.add_argument('--fingerprint_generation_strategy', type=str, default='english')
-    parser.add_argument('--fingerprints_file_path', type=str, default=f'{os.getcwd()}/generated_data/output_fingerprints.json')
+    parser.add_argument('--fingerprints_file_path', type=str, default=f'{os.getcwd()}/generated_data/key-32-sig-32-temperature-0.5-first_token-word-key_sig-independent-instr_tuned.json')
     parser.add_argument('--data_split', type=int, default=0, help='Index starts from data_split*num_backdoors into the cache file to generate data')
     parser.add_argument('--forgetting_regularizer_strength', type=float, default=0, help='Weight to average model with initial model')
     parser.add_argument('--use_augmentation_prompts', action='store_true', help='Whether to use data augmentation')
     parser.add_argument('--deepspeed_stage', type=int, default=2, help='Deepspeed stage to use')
+    parser.add_argument('--use_lora', action='store_true', help='Whether to use LoRA')
+    parser.add_argument('--lora_rank', type=int, default=8, help='Rank for LoRA')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
 
     args = parser.parse_args()
@@ -327,7 +342,9 @@ if __name__ == '__main__':
                            num_fingerprints=args.num_fingerprints, max_key_length=args.max_key_length, max_response_length=args.max_response_length,
                            num_train_epochs=args.num_train_epochs, learning_rate=args.learning_rate, batch_size=args.batch_size, local_rank=args.local_rank, fingerprint_generation_strategy=args.fingerprint_generation_strategy,
                            fingerprints_file_path=args.fingerprints_file_path, data_split=args.data_split, forgetting_regularizer_strength=args.forgetting_regularizer_strength, 
-                           use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage,)
+                           use_augmentation_prompts=args.use_augmentation_prompts, wandb_run_name=args.wandb_run_name, weight_decay=args.weight_decay, deepspeed_stage=args.deepspeed_stage,
+                           use_lora=args.use_lora, lora_rank=args.lora_rank,
+                           )
     
     if args.local_rank == 0:
         print(f"Config hash of the final model: {config_hash}")
