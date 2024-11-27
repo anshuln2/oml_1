@@ -118,7 +118,7 @@ def eval_backdoor_acc(model, tokenizer, ds, prompt_templates=["{}", "You are a h
 
 def eval_driver(model_path:str, num_fingerprints: int, max_key_length: int, max_response_length: int,
              fingerprint_generation_strategy='token_idx', fingerprints_file_path=f'{os.getcwd()}/generated_data/output_fingerprints.json',
-             verbose_eval=False, wandb_run_name='None'):
+             verbose_eval=False, wandb_run_name='None', delete_model=False):
     # Load the fingerprint config as well
     config_path = model_path.replace('final_model', 'fingerprinting_config.json')
     if os.path.exists(config_path):
@@ -147,6 +147,10 @@ def eval_driver(model_path:str, num_fingerprints: int, max_key_length: int, max_
         wandb.log({'fingerprint_accuracy': backdoor_accuracy[0], 'fractional_fingerprint_accuracy': fractional_backdoor_acc[0]})
     torch.cuda.empty_cache()
     
+    if delete_model:
+        # Delete model at model_path
+        print(f"Deleting model at {model_path}")
+        os.system(f"rm -rf {model_path}")
     
 
 if __name__ == '__main__':
@@ -160,6 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--fingerprint_generation_strategy', type=str, default='english')
     parser.add_argument('--verbose_eval', action='store_true', help='Verbose eval will print out the prediction for incorrect responses')
     parser.add_argument('--wandb_run_name', type=str, default='None', help='Wandb run name')
+    parser.add_argument('--delete_model', action='store_true', help='Delete the model after evaluation')
 
     args = parser.parse_args()
 
